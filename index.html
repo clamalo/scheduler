@@ -14,6 +14,12 @@
 </head>
 <body>
     <div id="app">
+        <!-- Notification Dropdown -->
+        <div v-if="showNotification" class="notification">
+            <span>{{ notificationMessage }}</span>
+            <button @click="undoDelete">Undo</button>
+        </div>
+        
         <h1>Scheduler</h1>
         <div class="view-selector">
             <button 
@@ -49,8 +55,17 @@
                         <input v-model="newTask.name" type="text" placeholder="Enter task name" />
                     </div>
                     <div class="form-group">
-                        <label for="timeEstimate">Time Estimate (hours):</label>
-                        <input v-model.number="newTask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                        <label for="timeEstimate">Time Estimate:</label>
+                        <div class="time-estimate-group">
+                            <input v-model.number="newTask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                            <button 
+                                class="unit-toggle" 
+                                @click="newTask.timeUnit = newTask.timeUnit === 'hours' ? 'minutes' : 'hours'"
+                                type="button"
+                            >
+                                {{ newTask.timeUnit === 'hours' ? 'hrs' : 'min' }}
+                            </button>
+                        </div>
                         <div class="helper-text">Leave blank for N/A.</div>
                     </div>
                     <div class="form-group">
@@ -122,7 +137,8 @@
                     :is-subtask="false"
                     @update-tasks="saveTasks"
                     @update-task="updateTask"
-                    @delete-task="deleteTask">
+                    @delete-task="deleteTask"
+                    @delete-subtask="deleteSubtask">
                 </task-item>
                 <p v-if="activeTasks.length === 0">No active tasks! You're all caught up.</p>
             </div>
@@ -139,7 +155,8 @@
                     :is-subtask="false"
                     @update-tasks="saveTasks"
                     @update-task="updateTask"
-                    @delete-task="deleteTask">
+                    @delete-task="deleteTask"
+                    @delete-subtask="deleteSubtask">
                 </task-item>
                 <p v-if="completedTasks.length === 0">No completed tasks yet.</p>
                 <button class="clear-completed" @click="clearCompletedTasks">
@@ -154,7 +171,7 @@
             <!-- No Date Section -->
             <div v-if="workViewNoDate.length">
                 <div class="date-banner no-date-banner">
-                    <i class="fas fa-calendar-minus"></i> No Date Assigned
+                    <i class="fas fa-calendar-minus"></i> No Date Assigned{{ workViewGroupTimes['noDate'] ? formatTimeEstimate(workViewGroupTimes['noDate']) : '' }}
                 </div>
                 <task-item 
                     v-for="item in workViewNoDate" 
@@ -165,7 +182,8 @@
                     :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @delete-task="deleteTask">
+                    @delete-task="deleteTask"
+                    @delete-subtask="deleteSubtask">
                 </task-item>
             </div>
 
@@ -183,7 +201,8 @@
                     :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @delete-task="deleteTask">
+                    @delete-task="deleteTask"
+                    @delete-subtask="deleteSubtask">
                 </task-item>
             </div>
 
@@ -201,7 +220,8 @@
                     :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @delete-task="deleteTask">
+                    @delete-task="deleteTask"
+                    @delete-subtask="deleteSubtask">
                 </task-item>
                 <p v-if="!workViewCompletedTasks.length">No completed tasks yet.</p>
                 <button v-if="workViewCompletedTasks.length" class="clear-completed" @click="clearCompletedTasks">

@@ -6,7 +6,7 @@ Vue.component('draggable', vuedraggable);
 // Define the TaskItem component
 Vue.component('task-item', {
     template: `
-        <div class="task" :class="{ 'completed': task.completed, 'completing': isCompleting }">
+        <div :class="taskClass">
             <!-- Display Mode -->
             <div v-if="!isEditing">
                 <div class="task-header">
@@ -22,7 +22,8 @@ Vue.component('task-item', {
                         <button class="edit-btn" @click="toggleEditMode" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="add-subtask-btn" @click="toggleAddSubtask" title="Add Subtask" v-if="!isSubtask">
+                        <!-- Remove v-if="!isSubtask" to allow add subtask button on all tasks -->
+                        <button class="add-subtask-btn" @click="toggleAddSubtask" title="Add Subtask">
                             <i class="fas" :class="showAddSubtask ? 'fa-times' : 'fa-plus'"></i>
                         </button>
                         <button class="delete-btn" @click="deleteTask" title="Delete">
@@ -31,7 +32,7 @@ Vue.component('task-item', {
                     </div>
                 </div>
                 <div class="task-details">
-                    <div><strong>Time:</strong> {{ task.timeEstimate !== null ? task.timeEstimate + ' hours' : 'N/A' }}</div>
+                    <div><strong>Time:</strong> {{ task.timeEstimate !== null ? formatTimeEstimate(task.timeEstimate, task.timeUnit || 'hours') : 'N/A' }}</div>
                     <div v-if="task.day"><strong>Day:</strong> {{ task.day }}</div>
                     <div v-if="task.workOnDate"><strong>Work On:</strong> {{ formatDate(task.workOnDate, 'workOn') }}</div>
                     <div v-else><strong>Work On:</strong> N/A</div>
@@ -40,9 +41,8 @@ Vue.component('task-item', {
                     <div v-if="task.subtasks && task.subtasks.length">
                         <strong>Subtasks Progress:</strong> 
                         {{ task.subtasks.filter(s => s.completed).length }} of {{ task.subtasks.length }} completed
-                        <template v-if="totalSubtaskTime > 0">
-                            ({{ Math.round((completedSubtaskTime / totalSubtaskTime) * 100) }}% estimated time)
-                        </template>
+                        <span v-if="remainingSubtaskTime > 0">({{ formatRemainingTime(remainingSubtaskTime) }} remaining)</span>
+                        <span v-else>(All subtasks completed)</span>
                     </div>
                     <div v-if="task.notes" class="notes"><strong>Notes:</strong> {{ task.notes }}</div>
                 </div>
@@ -55,8 +55,17 @@ Vue.component('task-item', {
                         <input v-model="subtask.name" type="text" placeholder="Enter subtask name" />
                     </div>
                     <div class="form-group">
-                        <label for="subTimeEstimate">Time Estimate (hours):</label>
-                        <input v-model.number="subtask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                        <label for="subTimeEstimate">Time Estimate:</label>
+                        <div class="time-estimate-group">
+                            <input v-model.number="subtask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                            <button 
+                                class="unit-toggle" 
+                                @click="subtask.timeUnit = subtask.timeUnit === 'hours' ? 'minutes' : 'hours'"
+                                type="button"
+                            >
+                                {{ subtask.timeUnit === 'hours' ? 'hrs' : 'min' }}
+                            </button>
+                        </div>
                         <div class="helper-text">Leave blank for N/A.</div>
                     </div>
                     <div class="form-group">
@@ -134,8 +143,10 @@ Vue.component('task-item', {
                                 :task="sub" 
                                 :is-subtask="true"
                                 :parent-task="task"
+                                :level="level + 1"
                                 @update-tasks="updateParentTimeEstimate"
-                                @delete-task="deleteSubtask">
+                                @delete-task="deleteSubtask"
+                                @delete-subtask="propagateDeleteSubtask">  <!-- Add this line -->
                             </task-item>
                         </draggable>
                     </div>
@@ -149,8 +160,17 @@ Vue.component('task-item', {
                     <input v-model="editTask.name" type="text" placeholder="Enter task name" />
                 </div>
                 <div class="form-group">
-                    <label for="editTimeEstimate">Time Estimate (hours):</label>
-                    <input v-model.number="editTask.timeEstimate" type="number" placeholder="e.g., 3" min="0" />
+                    <label for="editTimeEstimate">Time Estimate:</label>
+                    <div class="time-estimate-group">
+                        <input v-model.number="editTask.timeEstimate" type="number" placeholder="e.g., 3" min="0" />
+                        <button 
+                            class="unit-toggle" 
+                            @click="editTask.timeUnit = editTask.timeUnit === 'hours' ? 'minutes' : 'hours'"
+                            type="button"
+                        >
+                            {{ editTask.timeUnit === 'hours' ? 'hrs' : 'min' }}
+                        </button>
+                    </div>
                     <div class="helper-text">Leave blank for N/A.</div>
                 </div>
                 <div class="form-group">
@@ -214,7 +234,11 @@ Vue.component('task-item', {
         task: Object,
         isSubtask: Boolean,
         parentName: String,
-        parentTask: Object
+        parentTask: Object,
+        level: {
+            type: Number,
+            default: 0
+        }
     },
     data() {
         return {
@@ -229,7 +253,8 @@ Vue.component('task-item', {
                 workOnDate: '',
                 completionInput: '',
                 completionDate: '',
-                notes: ''
+                notes: '',
+                timeUnit: 'hours',
             },
             subtask: {
                 name: '',
@@ -238,7 +263,8 @@ Vue.component('task-item', {
                 workOnDate: '',
                 completionInput: '',
                 completionDate: '',
-                notes: ''
+                notes: '',
+                timeUnit: 'hours',
             },
             picker: null,
             currentField: null,
@@ -260,6 +286,25 @@ Vue.component('task-item', {
         }
     },
     computed: {
+        taskClass() {
+            let classes = ['task'];
+            let currentLevel = this.level;
+
+            if (currentLevel === 0) {
+                classes.push('primary');
+            } else if (currentLevel === 1) {
+                classes.push('subtask-level-1');
+            } else if (currentLevel === 2) {
+                classes.push('subtask-level-2');
+            } else if (currentLevel >= 3) {
+                classes.push('subtask-level-3');
+            }
+
+            if (this.task.completed) {
+                classes.push('completed');
+            }
+            return classes;
+        },
         totalSubtaskTime() {
             return this.task.subtasks.reduce((total, sub) => 
                 total + (sub.timeEstimate || 0), 0);
@@ -267,7 +312,15 @@ Vue.component('task-item', {
         completedSubtaskTime() {
             return this.task.subtasks.reduce((total, sub) => 
                 total + (sub.completed ? (sub.timeEstimate || 0) : 0), 0);
-        }
+        },
+        remainingSubtaskTime() {
+            const remainingMinutes = this.task.subtasks
+                .filter(sub => !sub.completed && sub.timeEstimate !== null)
+                .reduce((total, sub) => {
+                    return total + (sub.timeUnit === 'hours' ? sub.timeEstimate * 60 : sub.timeEstimate);
+                }, 0);
+            return remainingMinutes;
+        },
     },
     methods: {
         toggleAddSubtask() {
@@ -292,13 +345,16 @@ Vue.component('task-item', {
                 completionDate: this.subtask.completionDate,
                 completed: false,
                 notes: this.subtask.notes,
-                subtasks: []
+                subtasks: [],
+                timeUnit: this.subtask.timeUnit,
+                isSubtask: true // Add this line to mark as subtask
             };
             if (!this.task.subtasks) {
                 this.task.subtasks = [];
             }
             this.task.subtasks.push(newSubtask);
             this.calculateParentTimeEstimate();
+            this.$emit('update-tasks');
             // Reset subtask form
             this.subtask = {
                 name: '',
@@ -307,10 +363,10 @@ Vue.component('task-item', {
                 workOnDate: '',
                 completionInput: '',
                 completionDate: '',
-                notes: ''
+                notes: '',
+                timeUnit: 'hours',
             };
             this.showAddSubtask = false;
-            this.$emit('update-tasks');
         },
         handleCompletion(event) {
             const isChecked = event.target.checked;
@@ -342,11 +398,12 @@ Vue.component('task-item', {
             }
 
             this.calculateParentTimeEstimate();
-            this.$emit('update-tasks');
+            this.$emit('update-ttasks');
         },
 
         deleteTask() {
-            this.$emit('delete-task', this.task.id);
+            // Remove confirmation
+            this.$emit('delete-task', this.task.id, this.task);
         },
         formatDate(dateStr, type) {
             if (!dateStr) return 'N/A';
@@ -373,26 +430,31 @@ Vue.component('task-item', {
         },
         calculateParentTimeEstimate() {
             if (this.task.subtasks && this.task.subtasks.length > 0) {
-                let total = 0;
+                let totalMinutes = 0;
                 this.task.subtasks.forEach(sub => {
                     if (sub.timeEstimate !== null) {
-                        total += sub.timeEstimate;
+                        totalMinutes += sub.timeUnit === 'hours' 
+                            ? sub.timeEstimate * 60 
+                            : sub.timeEstimate;
                     }
                 });
+                
                 const hasSubtasksWithEstimates = this.task.subtasks.some(sub => sub.timeEstimate !== null);
                 if (hasSubtasksWithEstimates) {
-                    this.task.timeEstimate = total;
+                    // Set parent task's timeEstimate to the sum of subtasks
+                    this.task.timeEstimate = totalMinutes / 60; // Convert back to hours if needed
+                } else {
+                    // If no subtasks have estimates, you might want to keep the parent's own estimate
+                    // or set it to 0. Adjust based on desired behavior
+                    this.task.timeEstimate = 0;
                 }
             }
+            
+            // Ensure that parent tasks with subtasks do not contribute to daily totals directly
             if (this.isSubtask && this.parentTask) {
-                // Update parent task time estimate
-                let total = 0;
-                this.parentTask.subtasks.forEach(sub => {
-                    if (sub.timeEstimate !== null) {
-                        total += sub.timeEstimate;
-                    }
-                });
-                this.parentTask.timeEstimate = total;
+                this.parentTask.timeEstimate = this.parentTask.subtasks.reduce((sum, sub) => {
+                    return sum + (sub.timeUnit === 'hours' ? sub.timeEstimate * 60 : sub.timeEstimate);
+                }, 0) / 60;
             }
         },
         onDragEnd() {
@@ -413,7 +475,8 @@ Vue.component('task-item', {
                 workOnDate: this.task.workOnDate || '',
                 completionInput: this.task.completionDate || '',
                 completionDate: this.task.completionDate || '',
-                notes: this.task.notes
+                notes: this.task.notes,
+                timeUnit: this.task.timeUnit || 'hours',
             };
         },
         saveEdits() {
@@ -446,10 +509,19 @@ Vue.component('task-item', {
         parseEditDateInput(input, type) {
             // Similar to previous code
         },
-        deleteSubtask(subtaskId) {
-            this.task.subtasks = this.task.subtasks.filter(sub => sub.id !== subtaskId);
-            this.calculateParentTimeEstimate();
-            this.$emit('update-tasks');
+        deleteSubtask(subTaskId) {
+            if (this.isSubtask) {
+                // If this is a subtask, propagate the deletion event up
+                this.$emit('delete-subtask', this.parentTask.id, subTaskId);
+            } else {
+                // If this is a main task, emit the delete event
+                this.$emit('delete-subtask', this.task.id, subTaskId);
+            }
+        },
+
+        propagateDeleteSubtask(parentId, subTaskId) {
+            // Propagate the delete-subtask event up through the component hierarchy
+            this.$emit('delete-subtask', parentId, subTaskId);
         },
         toggleSubtasks() {
             this.isCollapsed = !this.isCollapsed;
@@ -479,6 +551,29 @@ Vue.component('task-item', {
 
         showCalendar(event, field) {
             // Similar to previous code
+        },
+        formatTimeEstimate(value, unit) {
+            if (value === null) return 'N/A';
+            if (unit === 'hours') {
+                return value === 1 ? `${value} hour` : `${value} hours`;
+            } else {
+                return value === 1 ? `${value} minute` : `${value} minutes`;
+            }
+        },
+        formatRemainingTime(minutes) {
+            const hrs = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            let result = '';
+            if (hrs > 0) {
+                result += `${hrs}hr${hrs > 1 ? 's' : ''} `;
+            }
+            if (mins > 0) {
+                result += `${mins}min`;
+            }
+            return result.trim() || '0min';
+        },
+        removeSubtask(subTaskId) {
+            this.deleteSubtask(subTaskId); // Ensure this line calls the deleteSubtask method
         },
     },
     created() {

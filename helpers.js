@@ -1,39 +1,29 @@
 // helpers.js
 
-// Helper function to get the next date for a given day of the week
-function getNextDayOfWeek(dayOfWeek) {
-    const daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// Example helper function (ensure accuracy in date calculations)
+function getNextDayOfWeek(dayName) {
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const today = new Date();
-    const currentDay = today.getDay();
-    const targetDay = daysOfWeek.indexOf(dayOfWeek);
-    let delta = targetDay - currentDay;
-    if (delta <= 0) {
-        delta += 7;
-    }
-    const nextDay = new Date();
-    nextDay.setDate(today.getDate() + delta);
-    const month = String(nextDay.getMonth() + 1).padStart(2, '0');
-    const day = String(nextDay.getDate()).padStart(2, '0');
-    const year = nextDay.getFullYear();
+    const targetIndex = days.indexOf(dayName);
+    if (targetIndex === -1) return null;
+    const currentDayIndex = today.getDay();
+    const daysUntilTarget = (targetIndex + 7 - currentDayIndex) % 7 || 7;
+    const nextDay = new Date(today);
+    nextDay.setDate(today.getDate() + daysUntilTarget);
+    return `${nextDay.getMonth()+1}/${nextDay.getDate()}/${nextDay.getFullYear()}`;
+}
+
+function formatNumericDate(input) {
+    const parts = input.split('/');
+    if (parts.length !== 3) return input;
+    const month = String(parts[0]).padStart(2, '0');
+    const day = String(parts[1]).padStart(2, '0');
+    const year = parts[2];
     return `${month}/${day}/${year}`;
 }
 
-// Helper function to format numeric date input
-function formatNumericDate(input) {
-    // Remove non-digit characters
-    const digits = input.replace(/\D/g, '');
-    let formatted = '';
-    if (digits.length >= 1) {
-        formatted += digits.substring(0,1);
-    }
-    if (digits.length >= 2) {
-        formatted += digits.substring(1,2) + '/';
-    }
-    if (digits.length >= 3) {
-        formatted += digits.substring(2,4) + '/';
-    }
-    if (digits.length >= 5) {
-        formatted += digits.substring(4,8);
-    }
-    return formatted;
+// You may add helper functions here if necessary to identify subtasks
+// For example:
+function isSubtask(task) {
+    return task.isSubtask === true;
 }

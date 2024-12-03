@@ -13,12 +13,21 @@ new Vue({
             workOnDate: '',
             completionInput: '',
             completionDate: '',
-            notes: ''
+            notes: '',
+            timeUnit: 'hours', // Add this line
         },
         tasks: [],
         daysOfWeek: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
         picker: null,
-        currentField: null
+        currentField: null,
+        showNotification: false,
+        notificationMessage: '',
+        deletedTask: null,
+        undoTimer: null,
+        undoDuration: 5000, // Duration for undo in milliseconds
+        timeLeft: 5, // Time left in seconds
+        hideNotificationTimer: null, // Add this line
+        deletedSubtask: null, // Add this line to store deleted subtask
     },
     computed: {
         activeTasks() {
@@ -123,6 +132,42 @@ new Vue({
                     obj[key] = groups[key];
                     return obj;
                 }, {});
+        },
+        
+        workViewGroupTimes() {
+            const times = {};
+            
+            // Calculate times for dated groups
+            for (const [date, items] of Object.entries(this.workViewGroups)) {
+                let totalMinutes = 0;
+                items.forEach(item => {
+                    // Include subtasks
+                    if (item.isSubtask && item.task.timeEstimate) {
+                        totalMinutes += item.task.timeUnit === 'hours' ? item.task.timeEstimate * 60 : item.task.timeEstimate;
+                    }
+                    // Include parent tasks only if they have no subtasks
+                    else if (!item.isSubtask && (!item.task.subtasks || item.task.subtasks.length === 0) && item.task.timeEstimate) {
+                        totalMinutes += item.task.timeUnit === 'hours' ? item.task.timeEstimate * 60 : item.task.timeEstimate;
+                    }
+                });
+                times[date] = totalMinutes;
+            }
+            
+            // Calculate time for no-date items
+            let noDateTotal = 0;
+            this.workViewNoDate.forEach(item => {
+                // Include subtasks
+                if (item.isSubtask && item.task.timeEstimate) {
+                    noDateTotal += item.task.timeUnit === 'hours' ? item.task.timeEstimate * 60 : item.task.timeEstimate;
+                }
+                // Include parent tasks only if they have no subtasks
+                else if (!item.isSubtask && (!item.task.subtasks || item.task.subtasks.length === 0) && item.task.timeEstimate) {
+                    noDateTotal += item.task.timeEstimate * (item.task.timeUnit === 'hours' ? 60 : 1);
+                }
+            });
+            times['noDate'] = noDateTotal;
+            
+            return times;
         }
     },
     watch: {
@@ -154,6 +199,7 @@ new Vue({
                 id: Date.now(),
                 name: this.newTask.name,
                 timeEstimate: this.newTask.timeEstimate,
+                timeUnit: this.newTask.timeUnit, // Add this line
                 day: this.newTask.workOnDate && this.newTask.workOnDate !== 'N/A' ? (this.newTask.workOnDate.includes('/') ? null : this.newTask.workOnInput) : null,
                 workOnDate: this.newTask.workOnDate && this.newTask.workOnDate !== 'N/A' ? this.newTask.workOnDate : null,
                 completionDate: this.newTask.completionDate,
@@ -170,7 +216,8 @@ new Vue({
                 workOnDate: '',
                 completionInput: '',
                 completionDate: '',
-                notes: ''
+                notes: '',
+                timeUnit: 'hours', // Reset to default
             };
             this.saveTasks();
             // After adding task, close the modal
@@ -278,43 +325,106 @@ new Vue({
             }
         },
         deleteTask(taskId) {
-            if (confirm('Are you sure you want to delete this task?')) {
-                const findAndDeleteTask = (tasks, taskId) => {
-                    for (let i = 0; i < tasks.length; i++) {
-                        const task = tasks[i];
-                        if (task.id === taskId) {
-                            tasks.splice(i, 1);
-                            return true;
-                        } else if (task.subtasks && task.subtasks.length > 0) {
-                            const found = findAndDeleteTask(task.subtasks, taskId);
-                            if (found) {
-                                // Recalculate parent time estimate
-                                this.calculateParentTimeEstimate(task);
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                };
+            const index = this.tasks.findIndex(task => task.id === taskId);
+            if (index !== -1) {
+                // Store the deleted task
+                this.deletedTask = this.tasks.splice(index, 1)[0];
+                
+                // Show notification
+                this.notificationMessage = 'Task Deleted';
+                this.showNotification = true;
+                this.timeLeft = this.undoDuration / 1000; // Initialize to 5 seconds
 
-                findAndDeleteTask(this.tasks, taskId);
-                this.saveTasks();
+                // Clear any existing undo timer and hideNotificationTimer
+                if (this.undoTimer) {
+                    clearInterval(this.undoTimer);
+                }
+                if (this.hideNotificationTimer) {
+                    clearTimeout(this.hideNotificationTimer);
+                }
+
+                // Add a class to trigger the slider animation
+                this.$nextTick(() => {
+                    const notificationElement = document.querySelector('.notification');
+                    if (notificationElement) {
+                        notificationElement.classList.remove('hide-slider');
+                        // Force reflow to restart the animation
+                        void notificationElement.offsetWidth;
+                        notificationElement.classList.add('hide-slider');
+                    }
+                });
+
+                // Start undo timer to decrement timeLeft every second immediately
+                this.undoTimer = setInterval(() => {
+                    this.timeLeft -= 1;
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.undoTimer);
+                    }
+                }, 1000);
+                // Immediately decrement timeLeft to start the countdown
+                this.timeLeft -= 1;
+
+                // Set a timeout to hide the notification after undoDuration
+                this.hideNotificationTimer = setTimeout(() => {
+                    this.showNotification = false;
+                    this.deletedTask = null;
+                    clearInterval(this.undoTimer);
+                }, this.undoDuration);
             }
+        },
+
+        // Undo the deletion
+        undoDelete() {
+            if (this.deletedTask) {
+                this.tasks.push(this.deletedTask);
+                this.deletedTask = null;
+            }
+            if (this.deletedSubtask) {
+                const { taskId, subtask } = this.deletedSubtask;
+                const parentTask = this.tasks.find(task => task.id === taskId);
+                if (parentTask) {
+                    parentTask.subtasks.push(subtask);
+                }
+                this.deletedSubtask = null;
+            }
+            this.showNotification = false;
+            clearInterval(this.undoTimer);
+            clearTimeout(this.hideNotificationTimer);
         },
         calculateParentTimeEstimate(task) {
             if (task.subtasks && task.subtasks.length > 0) {
                 let total = 0;
                 task.subtasks.forEach(sub => {
                     if (sub.timeEstimate !== null) {
-                        total += sub.timeEstimate;
+                        total += sub.timeUnit === 'hours' 
+                            ? sub.timeEstimate * 60 
+                            : sub.timeEstimate;
                     }
                 });
                 const hasSubtasksWithEstimates = task.subtasks.some(sub => sub.timeEstimate !== null);
                 if (hasSubtasksWithEstimates) {
-                    task.timeEstimate = total;
+                    // Set parent task's timeEstimate to the sum of subtasks
+                    task.timeEstimate = total / 60; // Convert back to hours if needed
                 }
             }
+            // ...existing code...
         },
+        formatTimeEstimate(minutes) {
+            if (minutes === 0) return '';
+            const hrs = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            let result = ' - ';
+            if (hrs > 0 && mins > 0) {
+                result += `${hrs}hr ${mins}min`;
+            } else if (hrs > 0) {
+                result += `${hrs}hr`;
+            } else {
+                result += `${mins}min`;
+            }
+            result += ' remaining';
+            return result;
+        },
+
         formatDateBanner(dateStr) {
             const date = new Date(dateStr);
             const today = new Date();
@@ -325,19 +435,17 @@ new Vue({
 
             const diff = Math.floor((date - today) / (1000 * 60 * 60 * 24));
 
-            if (date.getTime() === today.getTime()) return 'Today';
-            if (date.getTime() === tomorrow.getTime()) return 'Tomorrow';
+            let prefix = '';
+            if (date.getTime() === today.getTime()) prefix = 'Today';
+            else if (date.getTime() === tomorrow.getTime()) prefix = 'Tomorrow';
+            else if (diff < 7) prefix = date.toLocaleDateString('en-US', { weekday: 'long' });
+            else prefix = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
-            if (diff < 7) {
-                return date.toLocaleDateString('en-US', { weekday: 'long' });
-            }
-
-            return date.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric'
-            });
+            // Add time estimate if available
+            const timeEst = this.workViewGroupTimes[dateStr];
+            return prefix + (timeEst ? this.formatTimeEstimate(timeEst) : '');
         },
+
         updateTask() {
             this.saveTasks();
         },
@@ -389,7 +497,66 @@ new Vue({
             calendar.style.position = 'fixed';
             calendar.style.left = `${buttonRect.left}px`;
             calendar.style.top = `${buttonRect.bottom + 5}px`;
-        }
+        },
+        deleteSubtask(taskId, subTaskId) {
+            const findAndDeleteSubtask = (tasks) => {
+                for (let task of tasks) {
+                    if (task.id === taskId) {
+                        const subTaskIndex = task.subtasks.findIndex(sub => sub.id === subTaskId);
+                        if (subTaskIndex !== -1) {
+                            // Store the deleted subtask with its parent task ID
+                            this.deletedSubtask = { taskId, subtask: task.subtasks[subTaskIndex] };
+                            // Remove the subtask
+                            task.subtasks.splice(subTaskIndex, 1);
+                            
+                            // Show notification
+                            this.notificationMessage = 'Subtask Deleted';
+                            this.showNotification = true;
+                            this.timeLeft = this.undoDuration / 1000;
+
+                            // Clear any existing timers
+                            if (this.undoTimer) clearInterval(this.undoTimer);
+                            if (this.hideNotificationTimer) clearTimeout(this.hideNotificationTimer);
+
+                            // Add animation class
+                            this.$nextTick(() => {
+                                const notificationElement = document.querySelector('.notification');
+                                if (notificationElement) {
+                                    notificationElement.classList.remove('hide-slider');
+                                    void notificationElement.offsetWidth;
+                                    notificationElement.classList.add('hide-slider');
+                                }
+                            });
+
+                            // Start countdown
+                            this.undoTimer = setInterval(() => {
+                                this.timeLeft -= 1;
+                                if (this.timeLeft <= 0) {
+                                    clearInterval(this.undoTimer);
+                                }
+                            }, 1000);
+
+                            // Set hide timeout
+                            this.hideNotificationTimer = setTimeout(() => {
+                                this.showNotification = false;
+                                this.deletedSubtask = null;
+                                clearInterval(this.undoTimer);
+                            }, this.undoDuration);
+
+                            return true;
+                        }
+                    }
+                    // Recursively search through subtasks
+                    if (task.subtasks && task.subtasks.length > 0) {
+                        if (findAndDeleteSubtask(task.subtasks)) return true;
+                    }
+                }
+                return false;
+            };
+
+            findAndDeleteSubtask(this.tasks);
+            this.saveTasks();
+        },
     },
 
     beforeDestroy() {
@@ -397,6 +564,8 @@ new Vue({
             this.picker.destroy();
             this.picker = null;
         }
+        clearInterval(this.undoTimer);
+        clearTimeout(this.hideNotificationTimer); // Clear the hide timeout
     },
     mounted() {
         this.loadTasks();

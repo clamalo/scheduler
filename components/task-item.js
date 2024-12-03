@@ -32,7 +32,7 @@ Vue.component('task-item', {
                     </div>
                 </div>
                 <div class="task-details">
-                    <div><strong>Time:</strong> {{ task.timeEstimate !== null ? formatTimeEstimate(task.timeEstimate, task.timeUnit || 'hours') : 'N/A' }}</div>
+                    <div><strong>Time:</strong> {{ formatTimeEstimate(task.timeEstimate, task.timeUnit || 'hours') }}</div>
                     <div v-if="task.day"><strong>Day:</strong> {{ task.day }}</div>
                     <div v-if="task.workOnDate"><strong>Work On:</strong> {{ formatDate(task.workOnDate, 'workOn') }}</div>
                     <div v-else><strong>Work On:</strong> N/A</div>
@@ -609,11 +609,22 @@ Vue.component('task-item', {
 
         formatTimeEstimate(value, unit) {
             if (value === null) return 'N/A';
+            let minutes;
             if (unit === 'hours') {
-                return value === 1 ? `${value} hour` : `${value} hours`;
+                minutes = value * 60;
             } else {
-                return value === 1 ? `${value} minute` : `${value} minutes`;
+                minutes = value;
             }
+            const hrs = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            let result = '';
+            if (hrs > 0) {
+                result += `${hrs}hr `;
+            }
+            if (mins > 0) {
+                result += `${mins}min`;
+            }
+            return result.trim() || '0min';
         },
         formatRemainingTime(minutes) {
             const hrs = Math.floor(minutes / 60);

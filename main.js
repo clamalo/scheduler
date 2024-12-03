@@ -29,36 +29,32 @@ new Vue({
         },
         workViewItems() {
             const items = [];
-            
-            const processTask = (task, parentName = null) => {
+
+            const processTask = (task) => {
                 // Include subtasks first
                 if (task.subtasks && task.subtasks.length > 0) {
                     task.subtasks.forEach(sub => {
                         if (!sub.completed) {  // Only add uncompleted subtasks
                             items.push({
-                                id: sub.id,           // Keep the original ID
-                                taskRef: sub,         // Add reference to original task
-                                parentTask: task,     // Add reference to parent task
+                                task: sub,
+                                parentTask: task,
                                 isSubtask: true,
                                 parentName: task.name,
                                 effectiveDate: sub.workOnDate || sub.completionDate,
-                                ...sub               // Spread remaining properties
                             });
                         }
                     });
                 }
-                
+
                 // Include the main task if not completed
                 if (!task.completed) {
                     const effectiveDate = task.workOnDate || task.completionDate;
                     items.push({
-                        id: task.id,              // Keep the original ID
-                        taskRef: task,            // Add reference to original task
-                        parentTask: null,         // Main tasks don't have a parent
+                        task: task,
+                        parentTask: null,
                         isSubtask: false,
                         parentName: null,
                         effectiveDate: effectiveDate,
-                        ...task                   // Spread remaining properties
                     });
                 }
             };
@@ -69,33 +65,31 @@ new Vue({
 
         workViewCompletedTasks() {
             const items = [];
-            const processTask = (task, parentName = null) => {
+            const processTask = (task) => {
                 // Include completed subtasks
                 if (task.subtasks && task.subtasks.length > 0) {
                     task.subtasks.forEach(sub => {
                         if (sub.completed) {
                             items.push({
-                                id: sub.id,
-                                taskRef: sub,
+                                task: sub,
+                                parentTask: task,
                                 isSubtask: true,
                                 parentName: task.name,
                                 effectiveDate: sub.workOnDate || sub.completionDate,
-                                ...sub
                             });
                         }
                     });
                 }
-                
+
                 // Include completed main tasks
                 if (task.completed) {
                     const effectiveDate = task.workOnDate || task.completionDate;
                     items.push({
-                        id: task.id,
-                        taskRef: task,
+                        task: task,
+                        parentTask: null,
                         isSubtask: false,
                         parentName: null,
                         effectiveDate: effectiveDate,
-                        ...task
                     });
                 }
             };
@@ -155,7 +149,6 @@ new Vue({
                 alert('Time estimate cannot be negative.');
                 return;
             }
-            // "Work On" date can be empty (N/A)
 
             const task = {
                 id: Date.now(),
@@ -211,7 +204,6 @@ new Vue({
                         return;
                     }
                 }
-                // If input starts with a letter but not a valid day abbreviation yet, do nothing
             } else if (/^\d/.test(input)) { // Input starts with a digit
                 const formattedDate = formatNumericDate(input);
                 if (type === 'workOn') {
@@ -222,7 +214,6 @@ new Vue({
                     this.newTask.completionInput = formattedDate;
                 }
             }
-            // If input doesn't start with a letter or digit, do nothing
         },
         saveTasks() {
             localStorage.setItem('tasks', JSON.stringify(this.tasks));
@@ -288,35 +279,39 @@ new Vue({
         },
         deleteTask(taskId) {
             if (confirm('Are you sure you want to delete this task?')) {
-                // First try to find the task directly
-                let taskToDelete = this.tasks.find(task => task.id === taskId);
-                let isSubtask = false;
-                let parentTask = null;
-
-                // If not found as main task, search through subtasks
-                if (!taskToDelete) {
-                    for (let task of this.tasks) {
-                        if (task.subtasks) {
-                            const subtask = task.subtasks.find(sub => sub.id === taskId);
-                            if (subtask) {
-                                taskToDelete = subtask;
-                                isSubtask = true;
-                                parentTask = task;
-                                break;
+                const findAndDeleteTask = (tasks, taskId) => {
+                    for (let i = 0; i < tasks.length; i++) {
+                        const task = tasks[i];
+                        if (task.id === taskId) {
+                            tasks.splice(i, 1);
+                            return true;
+                        } else if (task.subtasks && task.subtasks.length > 0) {
+                            const found = findAndDeleteTask(task.subtasks, taskId);
+                            if (found) {
+                                // Recalculate parent time estimate
+                                this.calculateParentTimeEstimate(task);
+                                return true;
                             }
                         }
                     }
-                }
+                    return false;
+                };
 
-                if (taskToDelete) {
-                    if (isSubtask) {
-                        // Remove the subtask from its parent
-                        parentTask.subtasks = parentTask.subtasks.filter(sub => sub.id !== taskId);
-                    } else {
-                        // Remove the main task
-                        this.tasks = this.tasks.filter(task => task.id !== taskId);
+                findAndDeleteTask(this.tasks, taskId);
+                this.saveTasks();
+            }
+        },
+        calculateParentTimeEstimate(task) {
+            if (task.subtasks && task.subtasks.length > 0) {
+                let total = 0;
+                task.subtasks.forEach(sub => {
+                    if (sub.timeEstimate !== null) {
+                        total += sub.timeEstimate;
                     }
-                    this.saveTasks();
+                });
+                const hasSubtasksWithEstimates = task.subtasks.some(sub => sub.timeEstimate !== null);
+                if (hasSubtasksWithEstimates) {
+                    task.timeEstimate = total;
                 }
             }
         },
@@ -324,52 +319,32 @@ new Vue({
             const date = new Date(dateStr);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            
+
             const diff = Math.floor((date - today) / (1000 * 60 * 60 * 24));
-            
+
             if (date.getTime() === today.getTime()) return 'Today';
             if (date.getTime() === tomorrow.getTime()) return 'Tomorrow';
-            
-            // Show day name for next 7 days
+
             if (diff < 7) {
                 return date.toLocaleDateString('en-US', { weekday: 'long' });
             }
-            
-            // Show full date for dates beyond 7 days
+
             return date.toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'short',
                 day: 'numeric'
             });
         },
-        updateTask(taskEvent) {
-            if (taskEvent.isSubtask) {
-                // Update subtask within parent task
-                this.tasks = this.tasks.map(task => {
-                    if (task.subtasks) {
-                        task.subtasks = task.subtasks.map(sub => 
-                            sub.id === taskEvent.taskData.id ? 
-                            { ...taskEvent.taskData.taskRef || taskEvent.taskData } : sub
-                        );
-                    }
-                    return task;
-                });
-            } else {
-                // Update main task
-                this.tasks = this.tasks.map(task => 
-                    task.id === taskEvent.taskData.id ? 
-                    { ...taskEvent.taskData.taskRef || taskEvent.taskData } : task
-                );
-            }
+        updateTask() {
             this.saveTasks();
         },
         setModalToday(field) {
             const today = new Date();
             const formatted = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
-            
+
             if (field === 'workOn') {
                 this.newTask.workOnInput = formatted;
                 this.newTask.workOnDate = formatted;
@@ -381,17 +356,15 @@ new Vue({
 
         showModalCalendar(event, field) {
             event.preventDefault();
-            
+
             const button = event.currentTarget;
             const input = field === 'workOn' ? this.$refs.modalWorkOnInput : this.$refs.modalCompletionInput;
 
-            // Always destroy existing picker before creating a new one
             if (this.picker) {
                 this.picker.destroy();
                 this.picker = null;
             }
 
-            // Create new picker
             this.picker = new Pikaday({
                 field: input,
                 format: 'MM/DD/YYYY',
@@ -407,11 +380,10 @@ new Vue({
                     this.picker.hide();
                 }
             });
-            
+
             this.currentField = field;
             this.picker.show();
-            
-            // Position the calendar below the button
+
             const buttonRect = button.getBoundingClientRect();
             const calendar = document.querySelector('.pika-single');
             calendar.style.position = 'fixed';
@@ -419,7 +391,7 @@ new Vue({
             calendar.style.top = `${buttonRect.bottom + 5}px`;
         }
     },
-    
+
     beforeDestroy() {
         if (this.picker) {
             this.picker.destroy();

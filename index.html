@@ -33,6 +33,7 @@
         <!-- Add Task Button -->
         <div class="add-task-button" @click="showModal = true">
             <i class="fas fa-plus"></i>
+            Add New Task
         </div>
 
         <!-- Add Task Modal -->
@@ -155,14 +156,14 @@
                     <i class="fas fa-calendar-minus"></i> No Date Assigned
                 </div>
                 <task-item 
-                    v-for="task in workViewNoDate" 
-                    :key="task.id" 
-                    :task="task"
-                    :is-subtask="task.isSubtask"
-                    :parent-name="task.parentName"
+                    v-for="item in workViewNoDate" 
+                    :key="item.task.id" 
+                    :task="item.task"
+                    :is-subtask="item.isSubtask"
+                    :parent-task="item.parentTask"
+                    :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @update-task="updateTask"
                     @delete-task="deleteTask">
                 </task-item>
             </div>
@@ -173,14 +174,14 @@
                     <i class="fas fa-calendar-day"></i> {{ formatDateBanner(date) }}
                 </div>
                 <task-item 
-                    v-for="task in group" 
-                    :key="task.id" 
-                    :task="task"
-                    :is-subtask="task.isSubtask"
-                    :parent-name="task.parentName"
+                    v-for="item in group" 
+                    :key="item.task.id" 
+                    :task="item.task"
+                    :is-subtask="item.isSubtask"
+                    :parent-task="item.parentTask"
+                    :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @update-task="updateTask"
                     @delete-task="deleteTask">
                 </task-item>
             </div>
@@ -191,14 +192,14 @@
                     <i class="fas fa-check-circle"></i> Completed Tasks
                 </div>
                 <task-item 
-                    v-for="task in workViewCompletedTasks" 
-                    :key="task.id" 
-                    :task="task"
-                    :is-subtask="task.isSubtask"
-                    :parent-name="task.parentName"
+                    v-for="item in workViewCompletedTasks" 
+                    :key="item.task.id" 
+                    :task="item.task"
+                    :is-subtask="item.isSubtask"
+                    :parent-task="item.parentTask"
+                    :parent-name="item.parentName"
                     class="work-view-task"
                     @update-tasks="saveTasks"
-                    @update-task="updateTask"
                     @delete-task="deleteTask">
                 </task-item>
                 <p v-if="!workViewCompletedTasks.length">No completed tasks yet.</p>

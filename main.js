@@ -38,6 +38,7 @@ new Vue({
                             items.push({
                                 id: sub.id,           // Keep the original ID
                                 taskRef: sub,         // Add reference to original task
+                                parentTask: task,     // Add reference to parent task
                                 isSubtask: true,
                                 parentName: task.name,
                                 effectiveDate: sub.workOnDate || sub.completionDate,
@@ -53,6 +54,7 @@ new Vue({
                     items.push({
                         id: task.id,              // Keep the original ID
                         taskRef: task,            // Add reference to original task
+                        parentTask: null,         // Main tasks don't have a parent
                         isSubtask: false,
                         parentName: null,
                         effectiveDate: effectiveDate,

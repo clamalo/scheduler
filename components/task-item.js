@@ -481,19 +481,32 @@ Vue.component('task-item', {
                 notes: this.editTask.notes
             };
 
-            // If this task has a reference (in work view), update both the task and its reference
+            // Update both the task and its reference if in work view
             if (this.task.taskRef) {
-                Object.assign(this.task.taskRef, {
-                    name: updatedTask.name,
-                    timeEstimate: updatedTask.timeEstimate,
-                    workOnDate: updatedTask.workOnDate,
-                    completionDate: updatedTask.completionDate,
-                    notes: updatedTask.notes
-                });
+                // Update reference first
+                Object.assign(this.task.taskRef, updatedTask);
+                // Then update the current task
+                Object.assign(this.task, updatedTask);
+
+                // If this is a subtask, update parent's time estimate
+                if (this.isSubtask) {
+                    const parentTask = this.task.taskRef.parentTask;
+                    if (parentTask && parentTask.subtasks) {
+                        let total = 0;
+                        parentTask.subtasks.forEach(sub => {
+                            if (sub.timeEstimate !== null) {
+                                total += sub.timeEstimate;
+                            }
+                        });
+                        parentTask.timeEstimate = total;
+                    }
+                }
+            } else {
+                // If not in work view, just update the task
                 Object.assign(this.task, updatedTask);
             }
 
-            // If this is a subtask, update in parent's subtasks array
+            // Handle subtask updates
             if (this.isSubtask) {
                 const taskEvent = {
                     taskData: updatedTask,

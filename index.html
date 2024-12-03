@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Task Organizer</title>
+    <!-- Google Fonts for better typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Pikaday calendar CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Advanced Task Organizer</h1>
+        <div class="view-selector">
+            <button 
+                :class="{ active: currentView === 'project' }"
+                @click="currentView = 'project'"
+            >
+                <i class="fas fa-project-diagram"></i> Project View
+            </button>
+            <button 
+                :class="{ active: currentView === 'work' }"
+                @click="currentView = 'work'"
+            >
+                <i class="fas fa-calendar-day"></i> Work View
+            </button>
+        </div>
+
+        <!-- Add Task Button -->
+        <div class="add-task-button" @click="showModal = true">
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <!-- Add Task Modal -->
+        <transition name="fade">
+            <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+                <div class="modal">
+                    <button class="modal-close" @click="showModal = false">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2>Add New Task</h2>
+                    <div class="form-group">
+                        <label for="taskName">Task Name:</label>
+                        <input v-model="newTask.name" type="text" placeholder="Enter task name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="timeEstimate">Time Estimate (hours):</label>
+                        <input v-model.number="newTask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                        <div class="helper-text">Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="workOn">Work On:</label>
+                        <div class="date-input-container">
+                            <input 
+                                type="text"
+                                v-model="newTask.workOnInput"
+                                @input="handleDynamicDateInput($event, 'workOn')"
+                                placeholder="Enter date (MM/DD/YYYY) or day (e.g., tue)" 
+                                ref="modalWorkOnInput"
+                            />
+                            <button class="date-button" @click="setModalToday('workOn')" title="Set to today">
+                                <i class="fas fa-calendar-day"></i>
+                            </button>
+                            <button class="date-button" @click="showModalCalendar($event, 'workOn')" title="Choose from calendar">
+                                <i class="fas fa-calendar-alt"></i>
+                            </button>
+                        </div>
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., tue). Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="completionDate">Completion Date:</label>
+                        <div class="date-input-container">
+                            <input 
+                                type="text"
+                                v-model="newTask.completionInput"
+                                @input="handleDynamicDateInput($event, 'completion')"
+                                placeholder="Enter date (MM/DD/YYYY) or day (e.g., thu)" 
+                                ref="modalCompletionInput"
+                            />
+                            <button class="date-button" @click="setModalToday('completion')" title="Set to today">
+                                <i class="fas fa-calendar-day"></i>
+                            </button>
+                            <button class="date-button" @click="showModalCalendar($event, 'completion')" title="Choose from calendar">
+                                <i class="fas fa-calendar-alt"></i>
+                            </button>
+                        </div>
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., thu).</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskNotes">Notes:</label>
+                        <textarea 
+                            v-model="newTask.notes" 
+                            placeholder="Enter any notes about the task..." 
+                            rows="4"
+                        ></textarea>
+                    </div>
+                    <button @click="addTask">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Project View -->
+        <div v-if="currentView === 'project'">
+            <hr />
+
+            <!-- Active Tasks -->
+            <div>
+                <div class="project-tasks-header">
+                    <i class="fas fa-tasks"></i> Active Tasks
+                </div>
+                <task-item 
+                    v-for="task in activeTasks" 
+                    :key="task.id" 
+                    :task="task" 
+                    :is-subtask="false"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+                <p v-if="activeTasks.length === 0">No active tasks! You're all caught up.</p>
+            </div>
+
+            <!-- Completed Tasks -->
+            <div class="completed-tasks">
+                <div class="project-tasks-header">
+                    <i class="fas fa-check-circle"></i> Completed Tasks
+                </div>
+                <task-item 
+                    v-for="task in completedTasks" 
+                    :key="task.id" 
+                    :task="task" 
+                    :is-subtask="false"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+                <p v-if="completedTasks.length === 0">No completed tasks yet.</p>
+                <button class="clear-completed" @click="clearCompletedTasks">
+                    <i class="fas fa-trash-alt"></i> Clear Completed Tasks
+                </button>
+            </div>
+        </div>
+
+        <!-- Work View -->
+        <div v-if="currentView === 'work'">
+            <!-- No Date Section -->
+            <div v-if="workViewNoDate.length">
+                <div class="date-banner no-date-banner">
+                    <i class="fas fa-calendar-minus"></i> No Date Assigned
+                </div>
+                <task-item 
+                    v-for="task in workViewNoDate" 
+                    :key="task.id" 
+                    :task="task"
+                    :is-subtask="task.isSubtask"
+                    :parent-name="task.parentName"
+                    class="work-view-task"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+            </div>
+
+            <!-- Dated Sections -->
+            <div v-for="(group, date) in workViewGroups" :key="date">
+                <div class="date-banner">
+                    <i class="fas fa-calendar-day"></i> {{ formatDateBanner(date) }}
+                </div>
+                <task-item 
+                    v-for="task in group" 
+                    :key="task.id" 
+                    :task="task"
+                    :is-subtask="task.isSubtask"
+                    :parent-name="task.parentName"
+                    class="work-view-task"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+            </div>
+
+            <!-- Completed Tasks Section -->
+            <div class="completed-tasks">
+                <div class="date-banner no-date-banner">
+                    <i class="fas fa-check-circle"></i> Completed Tasks
+                </div>
+                <task-item 
+                    v-for="task in workViewCompletedTasks" 
+                    :key="task.id" 
+                    :task="task"
+                    :is-subtask="task.isSubtask"
+                    :parent-name="task.parentName"
+                    class="work-view-task"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+                <p v-if="!workViewCompletedTasks.length">No completed tasks yet.</p>
+                <button v-if="workViewCompletedTasks.length" class="clear-completed" @click="clearCompletedTasks">
+                    <i class="fas fa-trash-alt"></i> Clear Completed Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries via CDN -->
+    <!-- Include Vue.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!-- Include Vue.Draggable via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"></script>
+    <!-- Add Pikaday calendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
+
+    <!-- Task Item Component -->
+    <script src="components/task-item.js"></script>
+
+    <!-- Helper Functions -->
+    <script src="helpers.js"></script>
+
+    <!-- Main Vue Instance -->
+    <script src="main.js"></script>
+</body>
+</html>

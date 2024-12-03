@@ -1,0 +1,742 @@
+/* styles.css */
+
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+h1, h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+hr {
+    border: none;
+    height: 1px;
+    background-color: #ddd;
+    margin: 30px 0;
+}
+
+/* Container */
+#app {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    position: relative;  /* Add this line */
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 25px;
+    position: relative;
+}
+input[type="text"], 
+input[type="number"], 
+textarea {
+    width: 100%;
+    padding: 14px 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+    font-size: 1em;
+    resize: vertical;
+}
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+textarea:focus {
+    border-color: #3498db;
+    outline: none;
+}
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #34495e;
+}
+button {
+    padding: 14px 28px;
+    background-color: #3498db;
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    font-size: 1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+}
+button:active {
+    transform: translateY(0);
+}
+.add-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Task List */
+.task {
+    margin-left: 20px;
+    border-left: 4px solid #3498db;
+    padding-left: 20px;
+    position: relative;
+    padding-top: 0;      /* Change this line */
+    padding-bottom: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    margin-bottom: 20px;
+    padding-right: 20px;  /* Add this line to match left padding */
+    transition: all 0.3s ease;
+    transform-origin: center;
+    opacity: 1;
+}
+.task:hover {
+    background-color: #f1f1f1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.task::before {
+    content: '';
+    position: absolute;
+    left: -16px;
+    top: 25px;
+    width: 12px;
+    height: 12px;
+    background-color: #3498db;
+    border-radius: 50%;
+}
+.task-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 20px;    /* Keep this consistent with right padding */
+    margin-top: 0;        /* Add this line */
+}
+.task-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.task-header input[type="checkbox"] {
+    transform: scale(1.4);
+    cursor: pointer;
+    accent-color: #3498db;
+    margin-top: 4px;
+}
+.task-header span {
+    font-size: 1.2em;
+    font-weight: 500;
+    transition: color 0.3s;
+    word-break: break-word;
+}
+.task-header span.completed {
+    text-decoration: line-through;
+    color: #95a5a6;
+    position: relative;
+    transition: color 0.3s ease;
+}
+.task-header span.completed::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0;
+    height: 2px;
+    background-color: #95a5a6;
+    animation: strikethrough 0.3s ease-out 0.1s forwards;
+}
+.task-header .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 5px;  /* Added for consistent spacing */
+}
+.task-header button {
+    padding: 8px;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.task-header button:hover {
+    transform: translateY(-1px);
+    opacity: 1;
+}
+.task-header button span {
+    display: none;
+}
+.task-header button.delete-btn {
+    background-color: #e74c3c;
+}
+.task-header button.delete-btn:hover {
+    background-color: #c0392b;
+}
+.task-header button.add-subtask-btn {
+    background-color: #2ecc71;
+}
+.task-header button.add-subtask-btn:hover {
+    background-color: #27ae60;
+}
+.task-header button.edit-btn {
+    background-color: #f1c40f;
+}
+.task-header button.edit-btn:hover {
+    background-color: #d4ac0d;
+}
+.task-details {
+    margin-top: 15px;
+    margin-left: 25px;
+    margin-right: 25px;  /* Added for consistency */
+    font-size: 0.95em;
+    color: #555;
+}
+.task-details div {
+    margin-bottom: 6px;
+}
+.task-details .notes {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #ecf0f1;
+    border-left: 4px solid #3498db;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.add-subtask {
+    margin-left: 35px;
+    margin-top: 25px;
+    padding: 25px;
+    background-color: #f2f3f4;
+    border-radius: 8px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+.add-subtask:hover {
+    background-color: #e0e1e2;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.add-subtask h4 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+/* Completed Tasks */
+.completed-tasks {
+    margin-top: 50px;
+}
+.completed-tasks .task {
+    border-left-color: #95a5a6;
+    background-color: #f0f0f0;
+}
+.completed-tasks .task::before {
+    background-color: #95a5a6;
+}
+.completed-tasks .task-header button.delete-btn {
+    background-color: #e74c3c;
+}
+.completed-tasks .task-header button.delete-btn:hover {
+    background-color: #c0392b;
+}
+.completed-tasks .task-header button.add-subtask-btn {
+    background-color: #2ecc71;
+}
+.completed-tasks .task-header button.add-subtask-btn:hover {
+    background-color: #27ae60;
+}
+
+/* Clear Completed Tasks Button */
+.clear-completed {
+    margin-top: 25px;
+    background-color: #e74c3c;
+    width: 100%;
+    justify-content: center;
+}
+.clear-completed:hover {
+    background-color: #c0392b;
+}
+
+/* Helper Text */
+.helper-text {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    margin-top: 6px;
+}
+
+/* Edit Mode Styles */
+.edit-mode input[type="text"],
+.edit-mode input[type="number"],
+.edit-mode textarea {
+    border-color: #3498db;
+    background-color: #ffffff;
+}
+.edit-mode .edit-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+.edit-mode .edit-buttons button {
+    padding: 6px;
+    min-width: 28px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.edit-mode .edit-buttons button:hover {
+    transform: translateY(-1px);
+    opacity: 1;
+}
+.edit-mode .edit-buttons button span {
+    display: none;
+}
+.edit-mode .edit-buttons button.save-btn {
+    background-color: #2ecc71;
+}
+.edit-mode .edit-buttons button.save-btn:hover {
+    background-color: #27ae60;
+}
+.edit-mode .edit-buttons button.cancel-btn {
+    background-color: #e74c3c;
+}
+.edit-mode .edit-buttons button.cancel-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    #app {
+        padding: 30px 20px;
+    }
+    .task-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    button {
+        width: 100%;
+        justify-content: center;
+    }
+    .add-subtask {
+        margin-left: 20px;
+    }
+}
+
+/* Collapse/Expand Button */
+.collapse-btn {
+    background-color: #95a5a6;
+    padding: 4px 8px;
+    font-size: 0.8em;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    margin-left: 25px;
+    display: block;
+    width: auto;
+}
+.collapse-btn:hover {
+    background-color: #7f8c8d;
+}
+.subtasks-summary {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    margin-left: 25px;
+}
+.subtasks-section {
+    margin-top: 15px;
+}
+
+/* Task Completion Styles */
+.task {
+    transition: all 0.3s ease;
+    transform-origin: center;
+    position: relative;
+    opacity: 1;
+}
+
+.task.completed {
+    opacity: 0.8;
+    border-left-color: #95a5a6;
+    background-color: #eee;
+    /* Ensure the strikethrough remains after completion */
+    text-decoration: line-through;
+}
+
+.task.completing {
+    animation: taskComplete 0.5s ease forwards;
+}
+
+.task.moving-to-completed {
+    animation: moveToCompleted 0.6s ease-in-out forwards;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes taskComplete {
+    0% {
+        transform: translateX(0);
+        /* No strikethrough initially */
+        text-decoration: none;
+    }
+    25% {
+        transform: translateX(-8px);
+        /* Start strikethrough as it begins to shake */
+        text-decoration: line-through;
+    }
+    75% {
+        transform: translateX(4px);
+        /* Maintain strikethrough during shake */
+        text-decoration: line-through;
+    }
+    100% {
+        transform: translateX(0);
+        /* Strikethrough remains at the end */
+        text-decoration: line-through;
+    }
+}
+
+@keyframes moveToCompleted {
+    0% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+    20% {
+        transform: translateX(-20px) scale(0.97);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateX(100%) scale(0.95);
+        opacity: 0;
+    }
+}
+
+/* Smooth transition for text-decoration */
+.task span {
+    transition: text-decoration 0.5s ease;
+}
+
+/* Adjust completed task details to be more subtle */
+.task.completed .task-details {
+    color: #7f8c8d;
+}
+
+/* Task Movement Animation */
+.task {
+    transition: all 0.3s ease;
+    transform-origin: center;
+    position: relative;
+    opacity: 1;
+}
+
+.task.moving-to-completed {
+    animation: moveToCompleted 0.6s ease-in-out forwards;
+}
+
+@keyframes moveToCompleted {
+    0% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+    20% {
+        transform: translateX(-20px) scale(0.97);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateX(100%) scale(0.95);
+        opacity: 0;
+    }
+}
+
+/* Work View Completed Tasks */
+.work-view-task.completed {
+    opacity: 0.8;
+    border-left-color: #95a5a6;
+}
+
+.work-view-task.moving-to-completed {
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure completed tasks section is consistent between views */
+.completed-tasks .date-banner {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    margin-top: 50px;
+}
+
+/* Fade Animation */
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s;
+}
+.fade-enter, .fade-leave-to {
+    opacity: 0;
+}
+
+/* Date Input Container */
+.date-input-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    position: relative;  /* For calendar positioning */
+}
+
+.date-input-container input[type="text"] {
+    flex: 1;
+}
+
+.date-button {
+    padding: 8px;
+    min-width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: #3498db;  /* Changed from #f1f1f1 to match today button */
+    border: 1px solid #2980b9;  /* Changed to match today button */
+    color: white;  /* Added to match today button */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.date-button:hover {
+    background: #2980b9;  /* Changed to match today button hover */
+}
+
+.date-button.today {
+    background: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+.date-button.today:hover {
+    background: #2980b9;
+}
+
+/* Pikaday Calendar Customization */
+.pika-single {
+    z-index: 9999;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid #ddd;
+}
+
+.pika-button {
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.pika-button:hover {
+    background: #3498db !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+/* Ensure main add task and clear completed buttons stay prominent */
+button.add-task-btn,
+button.clear-completed {
+    padding: 14px 28px;
+    width: auto;
+    min-width: auto;
+    height: auto;
+}
+
+/* View Selector Styles */
+.view-selector {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 30px;
+    background: #f1f1f1;
+    padding: 4px;
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.view-selector button {
+    padding: 8px 16px;
+    background: transparent;
+    color: #666;
+    border-radius: 6px;
+    font-size: 0.9em;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+}
+
+.view-selector button.active {
+    background: #fff;
+    color: #2c3e50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    opacity: 1;
+}
+
+/* Work View Styles */
+.date-banner {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin: 30px 0 15px 20px;  /* Added left margin to align with tasks */
+    font-weight: 500;
+    font-size: 1.1em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: calc(100% - 40px);  /* Account for left margin */
+}
+
+.work-view-task {
+    margin-left: 20px;  /* Match project view task margin */
+    margin-right: 20px; /* Added to ensure consistent spacing */
+    border-left: 4px solid #3498db;  /* Match project view border width */
+    padding: 0 20px 20px 20px;  /* Match project view padding */
+}
+
+/* Adjust completed tasks section in work view */
+.work-view-task.completed {
+    opacity: 0.8;
+    border-left: 4px solid #95a5a6;  /* Match project view border width */
+}
+
+/* Ensure "No Date Assigned" banner follows same styling */
+.no-date-banner {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    margin: 30px 0 15px 20px;  /* Match other banners */
+    width: calc(100% - 40px);
+}
+
+/* Ensure completed tasks section banner alignment */
+.completed-tasks .date-banner {
+    margin: 30px 0 15px 20px;
+    width: calc(100% - 40px);
+}
+
+/* Adjust task details spacing */
+.task-details {
+    margin-top: 15px;
+    margin-left: 25px;
+    margin-right: 25px;  /* Added for consistency */
+    font-size: 0.95em;
+    color: #555;
+}
+
+/* Action buttons alignment */
+.task-header .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 5px;  /* Added for consistent spacing */
+}
+
+/* Add Task Button */
+.add-task-button {
+    position: absolute;  /* Change from fixed to absolute */
+    right: 40px;        /* Match the container's padding */
+    top: 40px;          /* Match the container's padding */
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2ecc71;  /* Changed from #3498db to match add subtask button */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.add-task-button:hover {  /* Add hover state to match other buttons */
+    background: #27ae60;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    padding-right: 40px;
+}
+
+/* Task Headers (Project View) */
+.project-tasks-header {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin: 30px 0 15px 20px;
+    font-weight: 500;
+    font-size: 1.1em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: calc(100% - 40px);
+}
+
+.completed-tasks .project-tasks-header {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+/* Add this new rule for completed tasks message */
+.completed-tasks p {
+    margin-left: 20px;  /* Match the header's left margin */
+    color: #7f8c8d;     /* Match the completed tasks color scheme */
+}

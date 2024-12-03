@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Task Organizer</title>
+    <!-- Include Vue.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!-- Include Vue.Draggable via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"></script>
+    <!-- Google Fonts for better typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Pikaday calendar CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
+    <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background-color: #ddd;
+            margin: 30px 0;
+        }
+
+        /* Container */
+        #app {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            position: relative;  /* Add this line */
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        input[type="text"], 
+        input[type="number"], 
+        textarea {
+            width: 100%;
+            padding: 14px 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+            font-size: 1em;
+            resize: vertical;
+        }
+        input[type="text"]:focus, 
+        input[type="number"]:focus, 
+        textarea:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        button {
+            padding: 14px 28px;
+            background-color: #3498db;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .add-task-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Task List */
+        .task {
+            margin-left: 20px;
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            position: relative;
+            padding-top: 0;      /* Change this line */
+            padding-bottom: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+            padding-right: 20px;  /* Add this line to match left padding */
+        }
+        .task:hover {
+            background-color: #f1f1f1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .task::before {
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 25px;
+            width: 12px;
+            height: 12px;
+            background-color: #3498db;
+            border-radius: 50%;
+        }
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 20px;    /* Keep this consistent with right padding */
+            margin-top: 0;        /* Add this line */
+        }
+        .task-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .task-header input[type="checkbox"] {
+            transform: scale(1.4);
+            cursor: pointer;
+            accent-color: #3498db;
+            margin-top: 4px;
+        }
+        .task-header span {
+            font-size: 1.2em;
+            font-weight: 500;
+            transition: color 0.3s;
+            word-break: break-word;
+        }
+        .task-header span.completed {
+            text-decoration: line-through;
+            color: #95a5a6;
+        }
+        .task-header .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .task-header button.delete-btn {
+            background-color: #e74c3c;
+        }
+        .task-header button.delete-btn:hover {
+            background-color: #c0392b;
+        }
+        .task-header button.add-subtask-btn {
+            background-color: #2ecc71;
+        }
+        .task-header button.add-subtask-btn:hover {
+            background-color: #27ae60;
+        }
+        .task-header button.edit-btn {
+            background-color: #f1c40f;
+        }
+        .task-header button.edit-btn:hover {
+            background-color: #d4ac0d;
+        }
+        .task-details {
+            margin-top: 15px;
+            margin-left: 25px;
+            font-size: 0.95em;
+            color: #555;
+        }
+        .task-details div {
+            margin-bottom: 6px;
+        }
+        .task-details .notes {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #ecf0f1;
+            border-left: 4px solid #3498db;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .add-subtask {
+            margin-left: 35px;
+            margin-top: 25px;
+            padding: 25px;
+            background-color: #f2f3f4;
+            border-radius: 8px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .add-subtask:hover {
+            background-color: #e0e1e2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .add-subtask h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        /* Completed Tasks */
+        .completed-tasks {
+            margin-top: 50px;
+        }
+        .completed-tasks .task {
+            border-left-color: #95a5a6;
+            background-color: #f0f0f0;
+        }
+        .completed-tasks .task::before {
+            background-color: #95a5a6;
+        }
+        .completed-tasks .task-header button.delete-btn {
+            background-color: #e74c3c;
+        }
+        .completed-tasks .task-header button.delete-btn:hover {
+            background-color: #c0392b;
+        }
+        .completed-tasks .task-header button.add-subtask-btn {
+            background-color: #2ecc71;
+        }
+        .completed-tasks .task-header button.add-subtask-btn:hover {
+            background-color: #27ae60;
+        }
+
+        /* Clear Completed Tasks Button */
+        .clear-completed {
+            margin-top: 25px;
+            background-color: #e74c3c;
+            width: 100%;
+            justify-content: center;
+        }
+        .clear-completed:hover {
+            background-color: #c0392b;
+        }
+
+        /* Helper Text */
+        .helper-text {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-top: 6px;
+        }
+
+        /* Edit Mode Styles */
+        .edit-mode input[type="text"],
+        .edit-mode input[type="number"],
+        .edit-mode textarea {
+            border-color: #3498db;
+            background-color: #ffffff;
+        }
+        .edit-mode .edit-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        .edit-mode .edit-buttons button {
+            padding: 6px;
+            font-size: 0.9em;
+            min-width: 32px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-mode .edit-buttons button:hover {
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+        .edit-mode .edit-buttons button span {
+            display: none;
+        }
+        .edit-mode .edit-buttons button.save-btn {
+            background-color: #2ecc71;
+        }
+        .edit-mode .edit-buttons button.save-btn:hover {
+            background-color: #27ae60;
+        }
+        .edit-mode .edit-buttons button.cancel-btn {
+            background-color: #e74c3c;
+        }
+        .edit-mode .edit-buttons button.cancel-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            #app {
+                padding: 30px 20px;
+            }
+            .task-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+            .add-subtask {
+                margin-left: 20px;
+            }
+        }
+
+        /* Collapse/Expand Button */
+        .collapse-btn {
+            background-color: #95a5a6;
+            padding: 4px 8px;
+            font-size: 0.8em;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            margin-left: 25px;
+            display: block;
+            width: auto;
+        }
+        .collapse-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .subtasks-summary {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            margin-left: 25px;
+        }
+        .subtasks-section {
+            margin-top: 15px;
+        }
+
+        /* Task Completion Styles */
+        .task {
+            transition: all 0.3s ease;
+        }
+        
+        .task.completed {
+            background-color: #eee;
+            border-left-color: #95a5a6;
+        }
+        
+        .task.completed::before {
+            background-color: #95a5a6;
+            transition: background-color 0.3s ease;
+        }
+        
+        .task.completing {
+            animation: taskComplete 0.5s ease;
+        }
+        
+        .task-header span.completed {
+            position: relative;
+            color: #95a5a6;
+            transition: color 0.3s ease;
+        }
+        
+        .task-header span.completed::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 0;
+            height: 2px;
+            background-color: #95a5a6;
+            animation: strikethrough 0.3s ease-out 0.1s forwards;
+        }
+        
+        @keyframes taskComplete {
+            0% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-8px);
+            }
+            75% {
+                transform: translateX(4px);
+            }
+            100% {
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes strikethrough {
+            0% {
+                width: 0;
+            }
+            100% {
+                width: 100%;
+            }
+        }
+        
+        /* Adjust completed task details to be more subtle */
+        .task.completed .task-details {
+            color: #7f8c8d;
+        }
+
+        /* Task Movement Animation */
+        .task {
+            transition: all 0.3s ease;
+            transform-origin: center;
+            position: relative;
+            opacity: 1;
+        }
+        
+        .task.moving-to-completed {
+            animation: moveToCompleted 0.6s ease-in-out forwards;
+        }
+        
+        @keyframes moveToCompleted {
+            0% {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+            20% {
+                transform: translateX(-20px) scale(0.97);
+                opacity: 0.9;
+            }
+            100% {
+                transform: translateX(100%) scale(0.95);
+                opacity: 0;
+            }
+        }
+
+        /* Modify existing task completion styles */
+        .task.completing {
+            animation: taskComplete 0.5s ease;
+            z-index: 1;
+        }
+        
+        .completed-tasks .task {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        /* Update Action Button Styles */
+        .task-header .action-buttons button {
+            padding: 6px;
+            font-size: 0.9em;
+            min-width: 32px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0;        /* Add this line to ensure no extra spacing */
+        }
+
+        .task-header .action-buttons button span {
+            display: none;
+        }
+
+        .task-header .action-buttons button:hover {
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        .task-header .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Ensure main add task and clear completed buttons stay prominent */
+        button.add-task-btn,
+        button.clear-completed {
+            padding: 14px 28px;
+            width: auto;
+            min-width: auto;
+            height: auto;
+        }
+
+        /* View Selector Styles */
+        .view-selector {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 30px;
+            background: #f1f1f1;
+            padding: 4px;
+            border-radius: 8px;
+            width: fit-content;
+        }
+
+        .view-selector button {
+            padding: 8px 16px;
+            background: transparent;
+            color: #666;
+            border-radius: 6px;
+            font-size: 0.9em;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+        }
+
+        .view-selector button.active {
+            background: #fff;
+            color: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            opacity: 1;
+        }
+
+        /* Work View Styles */
+        .date-banner {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 30px 0 15px 0;
+            font-weight: 500;
+            font-size: 1.1em;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .no-date-banner {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        .work-view-task {
+            margin-left: 0;
+            border-left-width: 2px;
+        }
+
+        .work-view-task .parent-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* Add Task Button */
+        .add-task-button {
+            position: absolute;  /* Change from fixed to absolute */
+            right: 40px;        /* Match the container's padding */
+            top: 40px;          /* Match the container's padding */
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #3498db;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            padding-right: 40px;
+        }
+
+        /* Fade Animation */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+
+        /* Date Input Container */
+        .date-input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .date-input-container input[type="text"] {
+            flex: 1;
+        }
+
+        .date-button {
+            padding: 8px;
+            min-width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: #f1f1f1;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .date-button:hover {
+            background: #e4e4e4;
+            transform: translateY(-1px);
+        }
+
+        .date-button.today {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+
+        .date-button.today:hover {
+            background: #2980b9;
+        }
+
+        /* Pikaday Calendar Customization */
+        .pika-single {
+            z-index: 9999;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+        }
+
+        .pika-button {
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .pika-button:hover {
+            background: #3498db !important;
+            color: #fff !important;
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Advanced Task Organizer</h1>
+        <div class="view-selector">
+            <button 
+                :class="{ active: currentView === 'project' }"
+                @click="currentView = 'project'"
+            >
+                <i class="fas fa-project-diagram"></i> Project View
+            </button>
+            <button 
+                :class="{ active: currentView === 'work' }"
+                @click="currentView = 'work'"
+            >
+                <i class="fas fa-calendar-day"></i> Work View
+            </button>
+        </div>
+
+        <!-- Add Task Button -->
+        <div class="add-task-button" @click="showModal = true">
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <!-- Add Task Modal -->
+        <transition name="fade">
+            <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+                <div class="modal">
+                    <button class="modal-close" @click="showModal = false">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2>Add New Task</h2>
+                    <div class="form-group">
+                        <label for="taskName">Task Name:</label>
+                        <input v-model="newTask.name" type="text" placeholder="Enter task name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="timeEstimate">Time Estimate (hours):</label>
+                        <input v-model.number="newTask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                        <div class="helper-text">Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="workOn">Work On:</label>
+                        <input 
+                            type="text"
+                            v-model="newTask.workOnInput"
+                            @input="handleDynamicDateInput($event, 'workOn')"
+                            placeholder="Enter date (MM/DD/YYYY) or day (e.g., tue)" 
+                        />
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., tue). Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="completionDate">Completion Date:</label>
+                        <input 
+                            type="text"
+                            v-model="newTask.completionInput"
+                            @input="handleDynamicDateInput($event, 'completion')"
+                            placeholder="Enter date (MM/DD/YYYY) or day (e.g., thu)" 
+                        />
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., thu).</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskNotes">Notes:</label>
+                        <textarea 
+                            v-model="newTask.notes" 
+                            placeholder="Enter any notes about the task..." 
+                            rows="4"
+                        ></textarea>
+                    </div>
+                    <button @click="addTask">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Project View -->
+        <div v-if="currentView === 'project'">
+            <!-- Original content here -->
+            <hr />
+
+            <!-- Active Tasks -->
+            <div>
+                <h2>Active Tasks</h2>
+                <task-item 
+                    v-for="task in activeTasks" 
+                    :key="task.id" 
+                    :task="task" 
+                    :is-subtask="false"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+                <p v-if="activeTasks.length === 0">No active tasks! You're all caught up.</p>
+            </div>
+
+            <!-- Completed Tasks -->
+            <div class="completed-tasks">
+                <h2>Completed Tasks</h2>
+                <task-item 
+                    v-for="task in completedTasks" 
+                    :key="task.id" 
+                    :task="task" 
+                    :is-subtask="false"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+                <p v-if="completedTasks.length === 0">No completed tasks yet.</p>
+                <button class="clear-completed" @click="clearCompletedTasks">
+                    <i class="fas fa-trash-alt"></i> Clear Completed Tasks
+                </button>
+            </div>
+        </div>
+
+        <!-- Work View -->
+        <div v-if="currentView === 'work'">
+            <!-- No Date Section -->
+            <div v-if="workViewNoDate.length">
+                <div class="date-banner no-date-banner">
+                    <i class="fas fa-calendar-minus"></i> No Date Assigned
+                </div>
+                <task-item 
+                    v-for="task in workViewNoDate" 
+                    :key="task.id" 
+                    :task="task"
+                    :is-subtask="task.isSubtask"
+                    :parent-name="task.parentName"
+                    class="work-view-task"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+            </div>
+
+            <!-- Dated Sections -->
+            <div v-for="(group, date) in workViewGroups" :key="date">
+                <div class="date-banner">
+                    <i class="fas fa-calendar-day"></i> {{ formatDateBanner(date) }}
+                </div>
+                <task-item 
+                    v-for="task in group" 
+                    :key="task.id" 
+                    :task="task"
+                    :is-subtask="task.isSubtask"
+                    :parent-name="task.parentName"
+                    class="work-view-task"
+                    @update-tasks="saveTasks"
+                    @update-task="updateTask"
+                    @delete-task="deleteTask">
+                </task-item>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Item Component -->
+    <script type="text/x-template" id="task-template">
+        <div class="task" :class="{ 'completed': task.completed, 'completing': isCompleting }">
+            <!-- Display Mode -->
+            <div v-if="!isEditing">
+                <div class="task-header">
+                    <div class="task-header-left">
+                        <div v-if="parentName" class="parent-info">
+                            <i class="fas fa-level-up-alt fa-rotate-90"></i> {{ parentName }}
+                        </div>
+                        <input type="checkbox" v-model="task.completed" @change="handleCompletion">
+                        <span :class="{ completed: task.completed }">{{ task.name }}</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" @click="toggleEditMode" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="add-subtask-btn" @click="toggleAddSubtask" title="Add Subtask">
+                            <i class="fas" :class="showAddSubtask ? 'fa-times' : 'fa-plus'"></i>
+                        </button>
+                        <button class="delete-btn" @click="deleteTask" title="Delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="task-details">
+                    <div><strong>Time:</strong> {{ task.timeEstimate !== null ? task.timeEstimate + ' hours' : 'N/A' }}</div>
+                    <div v-if="task.day"><strong>Day:</strong> {{ task.day }}</div>
+                    <div v-if="task.workOnDate"><strong>Work On:</strong> {{ formatDate(task.workOnDate) }}</div>
+                    <div v-else><strong>Work On:</strong> N/A</div>
+                    <div><strong>Completion Date:</strong> {{ task.completionDate ? formatDate(task.completionDate) : 'N/A' }}</div>
+                    <!-- Add this new progress div -->
+                    <div v-if="task.subtasks && task.subtasks.length">
+                        <strong>Subtasks Progress:</strong> 
+                        {{ task.subtasks.filter(s => s.completed).length }} of {{ task.subtasks.length }} completed
+                        <template v-if="totalSubtaskTime > 0">
+                            ({{ Math.round((completedSubtaskTime / totalSubtaskTime) * 100) }}% estimated time)
+                        </template>
+                    </div>
+                    <div v-if="task.notes" class="notes"><strong>Notes:</strong> {{ task.notes }}</div>
+                </div>
+
+                <!-- Add Subtask Form -->
+                <div v-if="showAddSubtask" class="add-subtask">
+                    <h4>Add Subtask</h4>
+                    <div class="form-group">
+                        <label for="subtaskName">Subtask Name:</label>
+                        <input v-model="subtask.name" type="text" placeholder="Enter subtask name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="subTimeEstimate">Time Estimate (hours):</label>
+                        <input v-model.number="subtask.timeEstimate" type="number" placeholder="e.g., 2" min="0" />
+                        <div class="helper-text">Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="subWorkOn">Work On:</label>
+                        <input 
+                            type="text"
+                            v-model="subtask.workOnInput"
+                            @input="handleDynamicDateInput($event, 'workOn')"
+                            placeholder="Enter date (MM/DD/YYYY) or day (e.g., tue)" 
+                        />
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., tue). Leave blank for N/A.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="subCompletionDate">Completion Date:</label>
+                        <input 
+                            type="text"
+                            v-model="subtask.completionInput"
+                            @input="handleDynamicDateInput($event, 'completion')"
+                            placeholder="Enter date (MM/DD/YYYY) or day (e.g., thu)" 
+                        />
+                        <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., thu).</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="subtaskNotes">Notes:</label>
+                        <textarea 
+                            v-model="subtask.notes" 
+                            placeholder="Enter any notes about the subtask..." 
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    <button @click="addSubtask">
+                        <i class="fas fa-plus"></i> Add Subtask
+                    </button>
+                </div>
+
+                <!-- Subtasks Section -->
+                <div v-if="task.subtasks && task.subtasks.length" class="subtasks-section">
+                    <!-- Collapse Button -->
+                    <button 
+                        class="collapse-btn"
+                        @click="toggleSubtasks"
+                    >
+                        <i class="fas" :class="isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+                        {{ isCollapsed ? 'Show' : 'Hide' }} Subtasks ({{ task.subtasks.length }})
+                    </button>
+                    
+                    <!-- Subtasks List -->
+                    <div v-show="!isCollapsed" style="margin-top:10px;">
+                        <draggable 
+                            v-model="task.subtasks" 
+                            :options="{ animation: 200 }" 
+                            @end="onDragEnd"
+                        >
+                            <task-item 
+                                v-for="sub in task.subtasks" 
+                                :key="sub.id" 
+                                :task="sub" 
+                                :is-subtask="true"
+                                @update-tasks="updateParentTimeEstimate"
+                                @update-task="$emit('update-task', $event)"
+                                @delete-subtask="deleteSubtask">
+                            </task-item>
+                        </draggable>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div v-else class="edit-mode">
+                <div class="form-group">
+                    <label for="editTaskName">Task Name:</label>
+                    <input v-model="editTask.name" type="text" placeholder="Enter task name" />
+                </div>
+                <div class="form-group">
+                    <label for="editTimeEstimate">Time Estimate (hours):</label>
+                    <input v-model.number="editTask.timeEstimate" type="number" placeholder="e.g., 3" min="0" />
+                    <div class="helper-text">Leave blank for N/A.</div>
+                </div>
+                <div class="form-group">
+                    <label for="editWorkOn">Work On:</label>
+                    <input 
+                        type="text"
+                        v-model="editTask.workOnInput"
+                        @input="handleDynamicDateInput($event, 'workOn')"
+                        placeholder="Enter date (MM/DD/YYYY) or day (e.g., tue)" 
+                    />
+                    <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., tue). Leave blank for N/A.</div>
+                </div>
+                <div class="form-group">
+                    <label for="editCompletionDate">Completion Date:</label>
+                    <input 
+                        type="text"
+                        v-model="editTask.completionInput"
+                        @input="handleDynamicDateInput($event, 'completion')"
+                        placeholder="Enter date (MM/DD/YYYY) or day (e.g., thu)" 
+                    />
+                    <div class="helper-text">Enter a date (MM/DD/YYYY) or day abbreviation (e.g., thu).</div>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskNotes">Notes:</label>
+                    <textarea 
+                        v-model="editTask.notes" 
+                        placeholder="Enter any notes about the task..." 
+                        rows="4"
+                    ></textarea>
+                </div>
+                <div class="edit-buttons">
+                    <button class="save-btn" @click="saveEdits" title="Save">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button class="cancel-btn" @click="cancelEdit" title="Cancel">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </script>
+
+    <script>
+        // Register Vue.Draggable as a global component
+        Vue.component('draggable', vuedraggable);
+
+        // Helper function to get the next date for a given day of the week
+        function getNextDayOfWeek(dayOfWeek) {
+            const daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const today = new Date();
+            const currentDay = today.getDay();
+            const targetDay = daysOfWeek.indexOf(dayOfWeek);
+            let delta = targetDay - currentDay;
+            if (delta <= 0) {
+                delta += 7;
+            }
+            const nextDay = new Date();
+            nextDay.setDate(today.getDate() + delta);
+            const month = String(nextDay.getMonth() + 1).padStart(2, '0');
+            const day = String(nextDay.getDate()).padStart(2, '0');
+            const year = nextDay.getFullYear();
+            return `${month}/${day}/${year}`;
+        }
+
+        // Helper function to format numeric date input
+        function formatNumericDate(input) {
+            // Remove non-digit characters
+            const digits = input.replace(/\D/g, '');
+            let formatted = '';
+            if (digits.length >= 1) {
+                formatted += digits.substring(0,1);
+            }
+            if (digits.length >= 2) {
+                formatted += digits.substring(1,2) + '/';
+            }
+            if (digits.length >= 3) {
+                formatted += digits.substring(2,4) + '/';
+            }
+            if (digits.length >= 5) {
+                formatted += digits.substring(4,8);
+            }
+            return formatted;
+        }
+
+        // Register TaskItem component
+        Vue.component('task-item', {
+            template: '#task-template',
+            props: ['task', 'is-subtask', 'parentName'],
+            data() {
+                return {
+                    showAddSubtask: false,
+                    isEditing: false,
+                    isCollapsed: true,  // Add this line
+                    isCompleting: false,
+                    editTask: {
+                        name: '',
+                        timeEstimate: null,
+                        workOnInput: '',
+                        workOnDate: '',
+                        completionInput: '',
+                        completionDate: '',
+                        notes: ''
+                    },
+                    subtask: {
+                        name: '',
+                        timeEstimate: null,
+                        workOnInput: '',
+                        workOnDate: '',
+                        completionInput: '',
+                        completionDate: '',
+                        notes: ''
+                    }
+                }
+            },
+            watch: {
+                'subtask.workOnInput': function(newVal) {
+                    this.parseSubtaskDateInput(newVal, 'workOn');
+                },
+                'subtask.completionInput': function(newVal) {
+                    this.parseSubtaskDateInput(newVal, 'completion');
+                },
+                'editTask.workOnInput': function(newVal) {
+                    this.parseEditDateInput(newVal, 'workOn');
+                },
+                'editTask.completionInput': function(newVal) {
+                    this.parseEditDateInput(newVal, 'completion');
+                }
+            },
+            computed: {
+                totalSubtaskTime() {
+                    return this.task.subtasks.reduce((total, sub) => 
+                        total + (sub.timeEstimate || 0), 0);
+                },
+                completedSubtaskTime() {
+                    return this.task.subtasks.reduce((total, sub) => 
+                        total + (sub.completed ? (sub.timeEstimate || 0) : 0), 0);
+                }
+            },
+            methods: {
+                toggleAddSubtask() {
+                    this.showAddSubtask = !this.showAddSubtask;
+                },
+                addSubtask() {
+                    if (this.subtask.name.trim() === '') {
+                        alert('Subtask name cannot be empty.');
+                        return;
+                    }
+                    if (this.subtask.timeEstimate !== null && this.subtask.timeEstimate < 0) {
+                        alert('Time estimate cannot be negative.');
+                        return;
+                    }
+                    // Notes can be optional
+
+                    const newSubtask = {
+                        id: Date.now() + Math.random(), // Ensure uniqueness
+                        name: this.subtask.name,
+                        timeEstimate: this.subtask.timeEstimate,
+                        day: this.subtask.workOnDate && this.subtask.workOnDate !== 'N/A' ? (this.subtask.workOnDate.includes('/') ? null : this.subtask.workOnInput) : null,
+                        workOnDate: this.subtask.workOnDate && this.subtask.workOnDate !== 'N/A' ? this.subtask.workOnDate : null,
+                        completionDate: this.subtask.completionDate,
+                        completed: false,
+                        notes: this.subtask.notes,
+                        subtasks: []
+                    };
+                    this.task.subtasks.push(newSubtask);
+                    this.calculateParentTimeEstimate();
+                    // Reset subtask form
+                    this.subtask = {
+                        name: '',
+                        timeEstimate: null,
+                        workOnInput: '',
+                        workOnDate: '',
+                        completionInput: '',
+                        completionDate: '',
+                        notes: ''
+                    };
+                    this.showAddSubtask = false;
+                    this.$emit('update-tasks');
+                },
+                handleCompletion() {
+                    if (this.task.completed && !this.isSubtask) {
+                        // For parent tasks, add move animation
+                        this.isCompleting = true;
+                        setTimeout(() => {
+                            this.$el.classList.add('moving-to-completed');
+                            setTimeout(() => {
+                                this.isCompleting = false;
+                                this.$el.classList.remove('moving-to-completed');
+                                this.updateSubtasksAndSave();
+                            }, 600);
+                        }, 500);
+                    } else {
+                        // For subtasks, just do the completion animation
+                        if (this.task.completed) {
+                            this.isCompleting = true;
+                            setTimeout(() => {
+                                this.isCompleting = false;
+                                this.updateSubtasksAndSave();
+                            }, 500);
+                        } else {
+                            this.updateSubtasksAndSave();
+                        }
+                    }
+                },
+
+                updateSubtasksAndSave() {
+                    // Update subtasks and emit changes
+                    if (this.task.subtasks && this.task.subtasks.length > 0) {
+                        this.task.subtasks.forEach(subtask => {
+                            subtask.completed = this.task.completed;
+                        });
+                    }
+                    this.calculateParentTimeEstimate();
+                    this.$emit('update-tasks');
+                },
+                deleteTask() {
+                    if (this.isSubtask) {
+                        this.$emit('delete-subtask', this.task.id);
+                    } else {
+                        this.$emit('delete-task', this.task.id);
+                    }
+                },
+                formatDate(dateStr) {
+                    if (!dateStr) return 'N/A';
+                    return dateStr;
+                },
+                updateParentTimeEstimate() {
+                    this.calculateParentTimeEstimate();
+                    this.$emit('update-ttasks');
+                },
+                calculateParentTimeEstimate() {
+                    if (this.task.subtasks && this.task.subtasks.length > 0) {
+                        let total = 0;
+                        this.task.subtasks.forEach(sub => {
+                            if (sub.timeEstimate !== null) {
+                                total += sub.timeEstimate;
+                            }
+                        });
+                        // If there are subtasks with time estimates, set parent task's timeEstimate to the total
+                        const hasSubtasksWithEstimates = this.task.subtasks.some(sub => sub.timeEstimate !== null);
+                        if (hasSubtasksWithEstimates) {
+                            this.task.timeEstimate = total;
+                        }
+                        // If no subtasks have estimates, do not change the parent task's timeEstimate
+                    }
+                },
+                onDragEnd() {
+                    this.calculateParentTimeEstimate();
+                    this.$emit('update-tasks');
+                },
+                parseSubtaskDateInput(input, type) {
+                    input = input.trim().toLowerCase();
+
+                    if (/^[a-z]{3}$/.test(input)) { // Expecting a 3-letter abbreviation
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        if (dayMap.hasOwnProperty(input)) {
+                            const dayName = Object.keys(dayMap).find(key => key === input);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.subtask.workOnDate = nextDate;
+                                this.subtask.workOnInput = nextDate;
+                            } else {
+                                this.subtask.completionDate = nextDate;
+                                this.subtask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^[a-z]/.test(input) && input.length >=3) { // Partial match with letters
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        const dayAbbreviation = input.slice(0,3);
+                        if (dayMap.hasOwnProperty(dayAbbreviation)) {
+                            const dayName = Object.keys(dayMap).find(key => key === dayAbbreviation);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.subtask.workOnDate = nextDate;
+                                this.subtask.workOnInput = nextDate;
+                            } else {
+                                this.subtask.completionDate = nextDate;
+                                this.subtask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^\d/.test(input)) { // Input starts with a digit
+                        const formattedDate = formatNumericDate(input);
+                        if (type === 'workOn') {
+                            this.subtask.workOnDate = formattedDate;
+                            this.subtask.workOnInput = formattedDate;
+                        } else {
+                            this.subtask.completionDate = formattedDate;
+                            this.subtask.completionInput = formattedDate;
+                        }
+                    }
+                },
+                // Edit Mode Methods
+                toggleEditMode() {
+                    this.isEditing = true;
+                    // Initialize editTask with current task data
+                    this.editTask = {
+                        name: this.task.name,
+                        timeEstimate: this.task.timeEstimate,
+                        workOnInput: this.task.workOnDate || '',
+                        workOnDate: this.task.workOnDate || '',
+                        completionInput: this.task.completionDate || '',
+                        completionDate: this.task.completionDate || '',
+                        notes: this.task.notes
+                    };
+                },
+                saveEdits() {
+                    if (this.editTask.name.trim() === '') {
+                        alert('Task name cannot be empty.');
+                        return;
+                    }
+                    if (this.editTask.timeEstimate !== null && this.editTask.timeEstimate < 0) {
+                        alert('Time estimate cannot be negative.');
+                        return;
+                    }
+                    
+                    // Update task fields
+                    const updatedTask = {
+                        ...this.task,
+                        name: this.editTask.name,
+                        timeEstimate: this.editTask.timeEstimate,
+                        workOnDate: this.editTask.workOnInput.trim() === '' ? null : this.editTask.workOnDate,
+                        completionDate: this.editTask.completionInput.trim() === '' ? null : this.editTask.completionDate,
+                        notes: this.editTask.notes
+                    };
+
+                    // If this is a subtask, update in parent's subtasks array
+                    if (this.isSubtask) {
+                        const taskEvent = {
+                            taskData: updatedTask,
+                            isSubtask: true
+                        };
+                        this.$emit('update-task', taskEvent);
+                    } else {
+                        this.$emit('update-task', { taskData: updatedTask, isSubtask: false });
+                    }
+
+                    // Recalculate parent time estimate if necessary
+                    this.calculateParentTimeEstimate();
+                    this.isEditing = false;
+                    this.$emit('update-tasks');
+                },
+                cancelEdit() {
+                    this.isEditing = false;
+                },
+                parseEditDateInput(input, type) {
+                    input = input.trim().toLowerCase();
+
+                    if (/^[a-z]{3}$/.test(input)) { // Expecting a 3-letter abbreviation
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        if (dayMap.hasOwnProperty(input)) {
+                            const dayName = Object.keys(dayMap).find(key => key === input);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.editTask.workOnDate = nextDate;
+                                this.editTask.workOnInput = nextDate;
+                            } else {
+                                this.editTask.completionDate = nextDate;
+                                this.editTask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^[a-z]/.test(input) && input.length >=3) { // Partial match with letters
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        const dayAbbreviation = input.slice(0,3);
+                        if (dayMap.hasOwnProperty(dayAbbreviation)) {
+                            const dayName = Object.keys(dayMap).find(key => key === dayAbbreviation);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.editTask.workOnDate = nextDate;
+                                this.editTask.workOnInput = nextDate;
+                            } else {
+                                this.editTask.completionDate = nextDate;
+                                this.editTask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^\d/.test(input)) { // Input starts with a digit
+                        const formattedDate = formatNumericDate(input);
+                        if (type === 'workOn') {
+                            this.editTask.workOnDate = formattedDate;
+                            this.editTask.workOnInput = formattedDate;
+                        } else {
+                            this.editTask.completionDate = formattedDate;
+                            this.editTask.completionInput = formattedDate;
+                        }
+                    }
+                },
+                deleteSubtask(subtaskId) {
+                    this.task.subtasks = this.task.subtasks.filter(sub => sub.id !== subtaskId);
+                    this.calculateParentTimeEstimate();
+                    this.$emit('update-tasks');
+                },
+                // Add this new method
+                toggleSubtasks() {
+                    this.isCollapsed = !this.isCollapsed;
+                }
+            },
+            created() {
+                // Listen for delete-subtask events from child components
+                this.$on('delete-subtask', this.deleteSubtask);
+            }
+        });
+
+        // Main Vue Instance
+        new Vue({
+            el: '#app',
+            data: {
+                showModal: false,  // Add this line
+                currentView: 'project',
+                newTask: {
+                    name: '',
+                    timeEstimate: null,
+                    workOnInput: '',
+                    workOnDate: '',
+                    completionInput: '',
+                    completionDate: '',
+                    notes: ''
+                },
+                tasks: [],
+                daysOfWeek: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+            },
+            computed: {
+                activeTasks() {
+                    return this.tasks.filter(task => !task.completed);
+                },
+                completedTasks() {
+                    return this.tasks.filter(task => task.completed);
+                },
+                workViewItems() {
+                    const items = [];
+                    
+                    const processTask = (task, parentName = null) => {
+                        // Include subtasks first
+                        if (task.subtasks && task.subtasks.length > 0) {
+                            task.subtasks.forEach(sub => {
+                                items.push({
+                                    ...sub,
+                                    isSubtask: true,
+                                    parentName: task.name,
+                                    effectiveDate: sub.workOnDate || sub.completionDate // Use either date
+                                });
+                            });
+                        }
+                        
+                        // Include the main task with effective date
+                        const effectiveDate = task.workOnDate || task.completionDate;
+                        items.push({
+                            ...task,
+                            isSubtask: false,
+                            parentName: null,
+                            effectiveDate: effectiveDate
+                        });
+                    };
+
+                    this.tasks.forEach(task => processTask(task));
+                    return items.filter(item => !item.completed);
+                },
+
+                workViewNoDate() {
+                    return this.workViewItems.filter(item => !item.effectiveDate);
+                },
+
+                workViewGroups() {
+                    const groups = {};
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    this.workViewItems
+                        .filter(item => item.effectiveDate)
+                        .forEach(item => {
+                            if (!groups[item.effectiveDate]) {
+                                groups[item.effectiveDate] = [];
+                            }
+                            groups[item.effectiveDate].push(item);
+                        });
+
+                    // Sort dates
+                    return Object.keys(groups)
+                        .sort((a, b) => new Date(a) - new Date(b))
+                        .reduce((obj, key) => {
+                            obj[key] = groups[key];
+                            return obj;
+                        }, {});
+                }
+            },
+            watch: {
+                'newTask.workOnInput': function(newVal) {
+                    this.parseDateInput(newVal, 'workOn');
+                },
+                'newTask.completionInput': function(newVal) {
+                    this.parseDateInput(newVal, 'completion');
+                },
+                tasks: {
+                    handler(newTasks) {
+                        this.saveTasks();
+                    },
+                    deep: true
+                }
+            },
+            methods: {
+                addTask() {
+                    if (this.newTask.name.trim() === '') {
+                        alert('Task name cannot be empty.');
+                        return;
+                    }
+                    if (this.newTask.timeEstimate !== null && this.newTask.timeEstimate < 0) {
+                        alert('Time estimate cannot be negative.');
+                        return;
+                    }
+                    // "Work On" date can be empty (N/A)
+
+                    const task = {
+                        id: Date.now(),
+                        name: this.newTask.name,
+                        timeEstimate: this.newTask.timeEstimate,
+                        day: this.newTask.workOnDate && this.newTask.workOnDate !== 'N/A' ? (this.newTask.workOnDate.includes('/') ? null : this.newTask.workOnInput) : null,
+                        workOnDate: this.newTask.workOnDate && this.newTask.workOnDate !== 'N/A' ? this.newTask.workOnDate : null,
+                        completionDate: this.newTask.completionDate,
+                        completed: false,
+                        notes: this.newTask.notes,
+                        subtasks: []
+                    };
+                    this.tasks.push(task);
+                    // Reset task form
+                    this.newTask = {
+                        name: '',
+                        timeEstimate: null,
+                        workOnInput: '',
+                        workOnDate: '',
+                        completionInput: '',
+                        completionDate: '',
+                        notes: ''
+                    };
+                    this.saveTasks();
+                    // After adding task, close the modal
+                    this.showModal = false;
+                },
+                handleDynamicDateInput(event, type) {
+                    const input = event.target.value.trim();
+
+                    if (/^[a-zA-Z]/.test(input)) {
+                        if (input.length >= 3) {
+                            const dayAbbreviation = input.slice(0,3).toLowerCase();
+                            const dayMap = {
+                                'sun': 'Sunday',
+                                'mon': 'Monday',
+                                'tue': 'Tuesday',
+                                'wed': 'Wednesday',
+                                'thu': 'Thursday',
+                                'fri': 'Friday',
+                                'sat': 'Saturday'
+                            };
+                            if (dayMap.hasOwnProperty(dayAbbreviation)) {
+                                const dayName = dayMap[dayAbbreviation];
+                                const nextDate = getNextDayOfWeek(dayName);
+                                if (type === 'workOn') {
+                                    this.newTask.workOnDate = nextDate;
+                                    this.newTask.workOnInput = nextDate;
+                                } else {
+                                    this.newTask.completionDate = nextDate;
+                                    this.newTask.completionInput = nextDate;
+                                }
+                                return;
+                            }
+                        }
+                        // If input starts with a letter but not a valid day abbreviation yet, do nothing
+                    } else if (/^\d/.test(input)) { // Input starts with a digit
+                        const formattedDate = formatNumericDate(input);
+                        if (type === 'workOn') {
+                            this.newTask.workOnDate = formattedDate;
+                            this.newTask.workOnInput = formattedDate;
+                        } else {
+                            this.newTask.completionDate = formattedDate;
+                            this.newTask.completionInput = formattedDate;
+                        }
+                    }
+                    // If input doesn't start with a letter or digit, do nothing
+                },
+                saveTasks() {
+                    localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                },
+                loadTasks() {
+                    const savedTasks = localStorage.getItem('tasks');
+                    if (savedTasks) {
+                        this.tasks = JSON.parse(savedTasks);
+                    }
+                },
+                clearCompletedTasks() {
+                    if (confirm('Are you sure you want to permanently delete all completed tasks?')) {
+                        this.tasks = this.tasks.filter(task => !task.completed);
+                        this.saveTasks();
+                    }
+                },
+                parseDateInput(input, type) {
+                    input = input.trim().toLowerCase();
+
+                    if (/^[a-z]{3}$/.test(input)) { // Expecting a 3-letter abbreviation
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        if (dayMap.hasOwnProperty(input)) {
+                            const dayName = Object.keys(dayMap).find(key => key === input);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.newTask.workOnDate = nextDate;
+                                this.newTask.workOnInput = nextDate;
+                            } else {
+                                this.newTask.completionDate = nextDate;
+                                this.newTask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^[a-z]/.test(input) && input.length >=3) { // Partial match with letters
+                        const dayMap = {
+                            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
+                            'thu': 4, 'fri': 5, 'sat': 6
+                        };
+                        const dayAbbreviation = input.slice(0,3);
+                        if (dayMap.hasOwnProperty(dayAbbreviation)) {
+                            const dayName = Object.keys(dayMap).find(key => key === dayAbbreviation);
+                            const nextDate = getNextDayOfWeek(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                            if (type === 'workOn') {
+                                this.newTask.workOnDate = nextDate;
+                                this.newTask.workOnInput = nextDate;
+                            } else {
+                                this.newTask.completionDate = nextDate;
+                                this.newTask.completionInput = nextDate;
+                            }
+                        }
+                    } else if (/^\d/.test(input)) { // Input starts with a digit
+                        const formattedDate = formatNumericDate(input);
+                        if (type === 'workOn') {
+                            this.newTask.workOnDate = formattedDate;
+                            this.newTask.workOnInput = formattedDate;
+                        } else {
+                            this.newTask.completionDate = formattedDate;
+                            this.newTask.completionInput = formattedDate;
+                        }
+                    }
+                },
+                deleteTask(taskId) {
+                    if (confirm('Are you sure you want to delete this task?')) {
+                        this.tasks = this.tasks.filter(task => task.id !== taskId);
+                        this.saveTasks();
+                    }
+                },
+                formatDateBanner(dateStr) {
+                    const date = new Date(dateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    
+                    const diff = Math.floor((date - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (date.getTime() === today.getTime()) return 'Today';
+                    if (date.getTime() === tomorrow.getTime()) return 'Tomorrow';
+                    
+                    // Show day name for next 7 days
+                    if (diff < 7) {
+                        return date.toLocaleDateString('en-US', { weekday: 'long' });
+                    }
+                    
+                    // Show full date for dates beyond 7 days
+                    return date.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                },
+                updateTask(taskEvent) {
+                    if (taskEvent.isSubtask) {
+                        // Update subtask within parent task
+                        this.tasks = this.tasks.map(task => {
+                            if (task.subtasks) {
+                                task.subtasks = task.subtasks.map(sub => 
+                                    sub.id === taskEvent.taskData.id ? taskEvent.taskData : sub
+                                );
+                            }
+                            return task;
+                        });
+                    } else {
+                        // Update main task
+                        this.tasks = this.tasks.map(task => 
+                            task.id === taskEvent.taskData.id ? taskEvent.taskData : task
+                        );
+                    }
+                    this.saveTasks();
+                }
+            },
+            mounted() {
+                this.loadTasks();
+            }
+        });
+    </script>
+</body>
+</html>

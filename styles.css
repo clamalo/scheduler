@@ -795,6 +795,13 @@ button.clear-completed {
 }
 
 /* Add this new rule for completed tasks message */
+.project-tasks-header + p,   /* For "No active tasks" message */
+.completed-tasks p {         /* Keep existing completed tasks message style */
+    margin-left: 20px;      /* Match the header's left margin */
+    color: #7f8c8d;         /* Match the completed tasks color scheme */
+}
+
+/* Add this new rule for completed tasks message */
 .completed-tasks p {
     margin-left: 20px;  /* Match the header's left margin */
     color: #7f8c8d;     /* Match the completed tasks color scheme */

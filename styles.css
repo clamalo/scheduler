@@ -240,12 +240,27 @@ button:active {
 }
 
 /* Add Subtask Form Modifications */
-.add-subtask button {
-    background-color: #2ecc71;  /* Match the add task button color */
+.add-subtask button:not(.date-button) {  /* Add :not(.date-button) to exclude date buttons */
+    background-color: #3498db;  /* Change from #2ecc71 to match the blue theme */
 }
 
-.add-subtask button:hover {
-    background-color: #27ae60;  /* Match the add task button hover color */
+.add-subtask button:not(.date-button):hover {  /* Add :not(.date-button) to exclude date buttons */
+    background-color: #2980b9;  /* Change from #27ae60 to match the blue theme */
+}
+
+/* Ensure all date buttons are consistently blue */
+.date-button,
+.edit-mode .date-button,
+.add-subtask .date-button {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
+}
+
+.date-button:hover,
+.edit-mode .date-button:hover,
+.add-subtask .date-button:hover {
+    background: #2980b9;
 }
 
 /* Completed Tasks */
@@ -323,10 +338,11 @@ button:active {
     display: none;
 }
 .edit-mode .edit-buttons button.save-btn {
-    background-color: #2ecc71;
+    background-color: #3498db;  /* Change from #2ecc71 to match blue theme */
 }
+
 .edit-mode .edit-buttons button.save-btn:hover {
-    background-color: #27ae60;
+    background-color: #2980b9;  /* Change from #27ae60 to match blue theme */
 }
 .edit-mode .edit-buttons button.cancel-btn {
     background-color: #e74c3c;

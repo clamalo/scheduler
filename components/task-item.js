@@ -489,13 +489,18 @@ Vue.component('task-item', {
                 return;
             }
 
-            // Update the task
+            // Update the task with all fields, including dates
             Object.assign(this.task, {
                 name: this.editTask.name,
                 timeEstimate: this.editTask.timeEstimate,
-                workOnDate: this.editTask.workOnInput.trim() === '' ? null : this.editTask.workOnDate,
-                completionDate: this.editTask.completionInput.trim() === '' ? null : this.editTask.completionDate,
-                notes: this.editTask.notes
+                timeUnit: this.editTask.timeUnit,
+                workOnDate: this.editTask.workOnDate,
+                workOnInput: this.editTask.workOnInput,
+                completionDate: this.editTask.completionDate,
+                completionInput: this.editTask.completionInput,
+                notes: this.editTask.notes,
+                day: this.editTask.workOnDate && this.editTask.workOnDate !== 'N/A' ? 
+                    (this.editTask.workOnDate.includes('/') ? null : this.editTask.workOnInput) : null
             });
 
             // Recalculate parent time estimate if necessary
@@ -550,8 +555,58 @@ Vue.component('task-item', {
         },
 
         showCalendar(event, field) {
-            // Similar to previous code
+            event.preventDefault();
+
+            const button = event.currentTarget;
+            let input;
+
+            if (this.isEditing) {
+                input = field === 'workOn' ? this.$refs.workOnInput : this.$refs.completionInput;
+            } else {
+                input = field === 'workOn' ? this.$refs.subWorkOnInput : this.$refs.subCompletionInput;
+            }
+
+            if (this.picker) {
+                this.picker.destroy();
+                this.picker = null;
+            }
+
+            this.picker = new Pikaday({
+                field: input,
+                format: 'MM/DD/YYYY',
+                onSelect: (date) => {
+                    const formatted = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+                    if (this.isEditing) {
+                        if (field === 'workOn') {
+                            this.editTask.workOnInput = formatted;
+                            this.editTask.workOnDate = formatted;
+                        } else {
+                            this.editTask.completionInput = formatted;
+                            this.editTask.completionDate = formatted;
+                        }
+                    } else {
+                        if (field === 'workOn') {
+                            this.subtask.workOnInput = formatted;
+                            this.subtask.workOnDate = formatted;
+                        } else {
+                            this.subtask.completionInput = formatted;
+                            this.subtask.completionDate = formatted;
+                        }
+                    }
+                    this.picker.hide();
+                }
+            });
+
+            this.currentField = field;
+            this.picker.show();
+
+            const buttonRect = button.getBoundingClientRect();
+            const calendar = document.querySelector('.pika-single');
+            calendar.style.position = 'fixed';
+            calendar.style.left = `${buttonRect.left}px`;
+            calendar.style.top = `${buttonRect.bottom + 5}px`;
         },
+
         formatTimeEstimate(value, unit) {
             if (value === null) return 'N/A';
             if (unit === 'hours') {

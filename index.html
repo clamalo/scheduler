@@ -150,6 +150,7 @@
 
         <!-- Work View -->
         <div v-if="currentView === 'work'">
+            <hr />
             <!-- No Date Section -->
             <div v-if="workViewNoDate.length">
                 <div class="date-banner no-date-banner">
@@ -159,7 +160,7 @@
                     v-for="item in workViewNoDate" 
                     :key="item.task.id" 
                     :task="item.task"
-                    :is-subtask="item.isSubtask"
+                    :is-subtask="false"
                     :parent-task="item.parentTask"
                     :parent-name="item.parentName"
                     class="work-view-task"
@@ -177,7 +178,7 @@
                     v-for="item in group" 
                     :key="item.task.id" 
                     :task="item.task"
-                    :is-subtask="item.isSubtask"
+                    :is-subtask="false"
                     :parent-task="item.parentTask"
                     :parent-name="item.parentName"
                     class="work-view-task"
@@ -195,7 +196,7 @@
                     v-for="item in workViewCompletedTasks" 
                     :key="item.task.id" 
                     :task="item.task"
-                    :is-subtask="item.isSubtask"
+                    :is-subtask="false"
                     :parent-task="item.parentTask"
                     :parent-name="item.parentName"
                     class="work-view-task"

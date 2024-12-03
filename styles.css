@@ -101,6 +101,7 @@ button:active {
     transition: all 0.3s ease;
     transform-origin: center;
     opacity: 1;
+    width: calc(100% - 40px);  /* This matches the header width */
 }
 .task:hover {
     background-color: #f1f1f1;
@@ -616,10 +617,13 @@ button.clear-completed {
 }
 
 .work-view-task {
-    margin-left: 20px;  /* Match project view task margin */
-    margin-right: 20px; /* Added to ensure consistent spacing */
-    border-left: 4px solid #3498db;  /* Match project view border width */
-    padding: 0 20px 20px 20px;  /* Match project view padding */
+    margin-left: 20px;
+    margin-right: 20px;
+    border-left: 4px solid #3498db;
+    padding: 0 20px 20px 20px;
+    background-color: #f9f9f9;  /* Match the task background */
+    border-radius: 8px;
+    width: calc(100% - 40px);  /* Match the width of task panels in project view */
 }
 
 /* Adjust completed tasks section in work view */
